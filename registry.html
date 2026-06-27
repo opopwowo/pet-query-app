@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>我的名下寵物清冊</title>
+<meta name="theme-color" content="#0f766e" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<style>
+  :root{
+    --teal:#0f766e; --teal-d:#0c5c56;
+    --bg:#f1f5f4; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100dvh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  header{
+    background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;
+    padding:calc(18px + env(safe-area-inset-top)) 16px 18px;border-radius:0 0 22px 22px;
+    box-shadow:0 6px 18px rgba(15,118,110,.22);display:flex;align-items:center;gap:12px;
+  }
+  header a.back{color:#fff;text-decoration:none;font-size:1.5rem;line-height:1;flex:0 0 auto}
+  header h1{font-size:1.15rem;margin:0}
+  header p{margin:2px 0 0;font-size:.72rem;opacity:.85}
+  main{max-width:480px;margin:0 auto;padding:16px 14px 32px}
+
+  .section-label{font-size:.78rem;color:var(--muted);margin:18px 4px 10px;font-weight:600}
+
+  /* 匯入 */
+  .import{background:var(--card);border:1px dashed var(--teal);border-radius:16px;padding:16px;text-align:center}
+  .import .impbtn{
+    display:inline-flex;align-items:center;gap:6px;background:var(--teal);color:#fff;
+    border:none;border-radius:11px;padding:11px 18px;font-size:.92rem;font-weight:600;cursor:pointer;
+  }
+  .import .impbtn:active{transform:scale(.97)}
+  .import .hint{font-size:.74rem;color:var(--muted);margin-top:10px;line-height:1.6}
+  .import .hint b{color:var(--teal)}
+
+  /* 摘要 */
+  .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 8px;text-align:center}
+  .stat .big{font-size:1.35rem;font-weight:700}
+  .stat .lb{font-size:.7rem;color:var(--muted);margin-top:2px}
+
+  /* 搜尋 */
+  .search{position:relative;margin:10px 0}
+  .search input{
+    width:100%;height:42px;border:1px solid var(--line);border-radius:12px;
+    padding:0 34px;font-size:.9rem;background:var(--card);color:var(--ink);box-sizing:border-box;
+  }
+  .search input:focus{outline:none;border-color:var(--teal)}
+  .search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+  /* 寵物卡片 */
+  .pet{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:10px}
+  .pet .ph{display:flex;align-items:baseline;gap:8px}
+  .pet .nm{font-size:1rem;font-weight:700}
+  .pet .no{font-size:.72rem;color:var(--muted)}
+  .pet .chiprow{display:flex;align-items:center;gap:8px;margin-top:7px}
+  .pet .chip{
+    flex:1;min-width:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;
+    color:var(--ink);word-break:break-all;
+  }
+  .pet .act{
+    flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:10px;
+    display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
+  }
+  .pet .act.q{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .pet .act:active{transform:scale(.92)}
+  .pet .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .pet .tag{font-size:.72rem;padding:3px 9px;border-radius:20px;background:#eef2f1;color:#374151}
+  .pet .tag.g{background:#dcfce7;color:#166534}
+  .pet .tag.a{background:#fef3c7;color:#92660a}
+  .pet .tag.r{background:#fee2e2;color:#b91c1c}
+  .pet .meta{margin-top:9px;border-top:1px solid var(--line);padding-top:8px;font-size:.78rem;line-height:1.7}
+  .pet .meta .mrow{display:flex;gap:8px}
+  .pet .meta .mk{color:var(--muted);flex:0 0 64px}
+  .pet .meta .mv{flex:1;word-break:break-word}
+
+  .note{font-size:.72rem;color:var(--muted);line-height:1.6;margin-top:18px;text-align:center;padding:0 8px}
+  #status{font-size:.8rem;color:var(--muted);text-align:center;margin:8px 0}
+  .nores{font-size:.84rem;color:var(--muted);text-align:center;padding:20px 0}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="index.html" aria-label="返回">‹</a>
+  <div>
+    <h1>📋 我的名下寵物清冊</h1>
+    <p id="sub">匯入官方匯出的 Excel 即可在此檢視</p>
+  </div>
+</header>
+
+<main>
+  <div class="section-label">匯入清冊</div>
+  <div class="import">
+    <label class="impbtn">⬆ 匯入官方清冊（Excel / CSV）
+      <input id="file" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+    </label>
+    <div class="hint">
+      在官網「名下寵物清冊」頁<b>下載 Excel</b>，再選擇該檔案。<br />
+      資料只會存在<b>這支手機</b>，不會上傳。
+    </div>
+  </div>
+  <div id="status"></div>
+
+  <div id="content" style="display:none">
+    <div class="section-label">摘要</div>
+    <div class="sum" id="sum"></div>
+    <div class="search">
+      <span class="si">🔍</span>
+      <input id="q" type="search" placeholder="搜尋寵物名稱／晶片號／品種" />
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <p class="note" id="note"></p>
+</main>
+
+<script>
+  const KEY = 'pet_registry_v1';
+  const OFFICIAL = 'https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999';
+  const HMAP = {
+    '編號':'no','登記/轉讓日期':'date','姓名':'owner','晶片號碼':'chip','多晶片號碼':'multiChip',
+    '寵物名稱':'name','性別':'gender','動物類別':'type','品種/物種':'breed','是否除戶':'removed',
+    '遺失狀態':'lost','絕育狀態':'neuter','用途':'use','飼主身分類型':'ownerType',
+    '來源母犬貓晶片':'srcChip','來源母犬貓原登記飼主':'srcOwner'
+  };
+  let filter = '';
+
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
+  const save = (o) => localStorage.setItem(KEY, JSON.stringify(o));
+  const setStatus = (m) => { document.getElementById('status').textContent = m || ''; };
+
+  const copyText = async (t) => {
+    try { await navigator.clipboard.writeText(t); return true; }
+    catch {
+      const e = document.createElement('textarea'); e.value = t; e.style.position='fixed'; e.style.opacity='0';
+      document.body.appendChild(e); e.select(); let ok=false; try{ok=document.execCommand('copy');}catch{}
+      document.body.removeChild(e); return ok;
+    }
+  };
+
+  async function loadXLSX() {
+    if (window.XLSX) return;
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('xlsx load failed'));
+      document.head.appendChild(s);
+    });
+  }
+
+  function parseAoA(aoa) {
+    const hi = aoa.findIndex((r) => r && r.some((c) => String(c).trim() === '編號'));
+    if (hi < 0) throw new Error('找不到清冊欄位（編號…），請確認是官方匯出的檔案');
+    const header = aoa[hi].map((c) => String(c == null ? '' : c).trim());
+    const rows = [];
+    for (let i = hi + 1; i < aoa.length; i++) {
+      const r = aoa[i]; if (!r || !String(r[0] == null ? '' : r[0]).trim()) continue;
+      const d = {};
+      header.forEach((h, j) => {
+        const key = HMAP[h] || h;
+        d[key] = String(r[j] == null ? '' : r[j]).trim();
+      });
+      rows.push(d);
+    }
+    return rows;
+  }
+
+  document.getElementById('file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setStatus('讀取中…');
+    try {
+      await loadXLSX();
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+      const rows = parseAoA(aoa);
+      if (!rows.length) throw new Error('檔案中沒有寵物資料');
+      save({ importedAt: new Date().toISOString().slice(0,10).replace(/-/g,'/'),
+             fileName: file.name, owner: rows[0].owner || '', rows });
+      setStatus('');
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setStatus('❌ ' + (err.message || '匯入失敗') +
+        (/load failed/.test(err.message||'') ? '（匯入需連線載入解析元件）' : ''));
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('q').addEventListener('input', (e) => { filter = e.target.value; render(); });
+
+  function tagClass(field, val) {
+    if (field === 'neuter') return val === '絕育' ? 'g' : (val === '未絕育' ? 'a' : '');
+    if (field === 'removed') return val === '是' ? 'r' : '';
+    return '';
+  }
+
+  function render() {
+    const data = load();
+    const content = document.getElementById('content');
+    if (!data || !data.rows || !data.rows.length) {
+      content.style.display = 'none';
+      document.getElementById('note').textContent = '';
+      return;
+    }
+    content.style.display = 'block';
+    document.getElementById('sub').textContent =
+      (data.owner ? data.owner + '・' : '') + '共 ' + data.rows.length + ' 筆・匯入 ' + data.importedAt;
+
+    // 摘要
+    const cats = data.rows.filter((r) => r.type === '貓').length;
+    const dogs = data.rows.filter((r) => r.type === '犬' || r.type === '狗').length;
+    const neu = data.rows.filter((r) => r.neuter === '絕育').length;
+    document.getElementById('sum').innerHTML =
+      '<div class="stat"><div class="big">' + data.rows.length + '</div><div class="lb">總數</div></div>' +
+      '<div class="stat"><div class="big">' + cats + '</div><div class="lb">🐱 貓</div></div>' +
+      '<div class="stat"><div class="big">' + neu + '</div><div class="lb">已絕育</div></div>';
+
+    // 過濾
+    const q = filter.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const list = q ? data.rows.filter((r) =>
+      (r.name || '').toLowerCase().includes(q) ||
+      (r.breed || '').toLowerCase().includes(q) ||
+      (digits && (r.chip || '').includes(digits))) : data.rows;
+
+    const $list = document.getElementById('list');
+    if (!list.length) { $list.innerHTML = '<div class="nores">找不到符合「' + filter + '」的寵物</div>'; }
+    else {
+      $list.innerHTML = list.map((r) => {
+        const tags = [];
+        if (r.gender) tags.push('<span class="tag">' + r.gender + '</span>');
+        if (r.breed) tags.push('<span class="tag">' + r.breed + '</span>');
+        if (r.neuter) tags.push('<span class="tag ' + tagClass('neuter', r.neuter) + '">' + r.neuter + '</span>');
+        if (r.use) tags.push('<span class="tag">' + r.use + '</span>');
+        if (r.removed === '是') tags.push('<span class="tag r">已除戶</span>');
+        if (r.lost) tags.push('<span class="tag r">' + r.lost + '</span>');
+        const meta = [];
+        if (r.date) meta.push(mrow('登記日', r.date));
+        if (r.ownerType) meta.push(mrow('飼主別', r.ownerType));
+        if (r.multiChip) meta.push(mrow('多晶片', r.multiChip));
+        if (r.srcChip || r.srcOwner) meta.push(mrow('來源', (r.srcOwner || '') + (r.srcChip ? '（' + r.srcChip + '）' : '')));
+        return '<div class="pet">' +
+          '<div class="ph"><span class="nm">' + esc(r.name || ('#' + r.no)) + '</span>' +
+            (r.type ? '<span class="no">' + r.type + '・#' + r.no + '</span>' : '<span class="no">#' + r.no + '</span>') + '</div>' +
+          '<div class="chiprow"><span class="chip">' + esc(r.chip || '—') + '</span>' +
+            (r.chip ? '<button class="act" data-c="' + r.chip + '" title="複製">⧉</button>' +
+                      '<button class="act q" data-q="' + r.chip + '" title="查詢">🔍</button>' : '') +
+          '</div>' +
+          (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
+          (meta.length ? '<div class="meta">' + meta.join('') + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }
+
+    document.getElementById('note').innerHTML =
+      '資料由你從官方系統匯出，僅儲存在本機。<br>來源檔：' + esc(data.fileName || '');
+
+    // 綁定按鈕
+    $list.querySelectorAll('[data-c]').forEach((b) => b.onclick = async () => {
+      const ok = await copyText(b.dataset.c); setStatus(ok ? '已複製晶片號碼' : '複製失敗');
+      setTimeout(() => setStatus(''), 1800);
+    });
+    $list.querySelectorAll('[data-q]').forEach((b) => b.onclick = async () => {
+      await copyText(b.dataset.q);
+      setStatus('已複製晶片號碼 ⮕ 到官網長按貼上'); setTimeout(() => setStatus(''), 2500);
+      window.open(OFFICIAL, '_blank', 'noopener');
+    });
+  }
+
+  function mrow(k, v) { return '<div class="mrow"><span class="mk">' + k + '</span><span class="mv">' + esc(v) + '</span></div>'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  render();
+</script>
+</body>
+</html>
