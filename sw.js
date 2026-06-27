@@ -1,8 +1,10 @@
 // Service worker — 讓 App 可安裝並支援離線開啟啟動頁
-const CACHE = 'pet-query-v2';
+const CACHE = 'pet-query-v3';
 const ASSETS = [
   './',
   './index.html',
+  './stats.html',
+  './data/pet-stats.json',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

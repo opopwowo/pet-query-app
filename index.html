@@ -110,16 +110,15 @@
   }
   .fav .add button:active{transform:scale(.97)}
   .fav ul{list-style:none;margin:12px 0 0;padding:0}
-  .fav li{
-    display:flex;align-items:center;gap:10px;
-    padding:11px 4px;border-top:1px solid var(--line);
-  }
-  .fav li .meta{flex:1;min-width:0}
-  .fav li .meta b{display:block;font-size:.92rem;line-height:1.3}
+  .fav li{padding:11px 2px;border-top:1px solid var(--line)}
+  .fav li .row1{display:flex;align-items:center;gap:9px}
+  .fav li .meta{flex:1;min-width:0;cursor:pointer}
+  .fav li .meta b{display:block;font-size:.94rem;line-height:1.3}
   .fav li .meta .num{
     font-size:.8rem;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
     word-break:break-all;
   }
+  .fav li .meta .sub{display:block;font-size:.76rem;color:var(--teal);margin-top:2px}
   .fav li .act{
     flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:#fff;
     border-radius:10px;display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
@@ -128,6 +127,31 @@
   .fav li .act.del{color:#b91c1c}
   .fav li .act:active{transform:scale(.92)}
   .fav .empty{font-size:.78rem;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.6}
+
+  /* 寵物卡片：展開的查詢結果紀錄 */
+  .detail{margin:10px 2px 2px;background:#f8fafa;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .detail .view .drow{display:flex;gap:8px;font-size:.82rem;padding:3px 0}
+  .detail .view .drow .dk{color:var(--muted);flex:0 0 64px}
+  .detail .view .drow .dv{color:var(--ink);flex:1;word-break:break-word}
+  .detail .view .upd{font-size:.72rem;color:var(--muted);margin-top:6px}
+  .detail .edit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .detail .edit label{display:flex;flex-direction:column;font-size:.72rem;color:var(--muted);gap:3px}
+  .detail .edit label.full{grid-column:1 / -1}
+  .detail .edit input,.detail .edit select{
+    height:38px;border:1px solid var(--line);border-radius:9px;padding:0 9px;
+    font-size:.86rem;background:#fff;color:var(--ink);box-sizing:border-box;width:100%;
+  }
+  .detail .edit input:focus,.detail .edit select:focus{outline:none;border-color:var(--teal)}
+  .detail .ebtns{display:flex;gap:8px;margin-top:10px}
+  .detail .ebtns button{
+    flex:1;height:40px;border:none;border-radius:10px;font-size:.86rem;font-weight:600;cursor:pointer;
+  }
+  .detail .ebtns .save{background:var(--teal);color:#fff}
+  .detail .ebtns .cancel{background:#fff;color:var(--muted);border:1px solid var(--line)}
+  .detail .editbtn{
+    margin-top:4px;width:100%;height:38px;border:1px dashed var(--teal);background:#fff;
+    color:var(--teal);border-radius:10px;font-size:.84rem;cursor:pointer;
+  }
 
   /* 安裝提示 */
   #install{
@@ -194,6 +218,14 @@
   <a class="btn" href="https://www.pet.gov.tw/" target="_blank" rel="noopener">
     <span class="ico">🏠</span>
     <span class="tx"><b>寵物登記管理資訊網</b><span>官方網站首頁</span></span>
+    <span class="arrow">›</span>
+  </a>
+
+  <div class="section-label">統計</div>
+
+  <a class="btn" href="stats.html">
+    <span class="ico">📊</span>
+    <span class="tx"><b>全國登記統計</b><span>各縣市・年度趨勢・絕育率</span></span>
     <span class="arrow">›</span>
   </a>
 
@@ -281,12 +313,135 @@
     }
   };
 
+  // 可記錄的查詢結果欄位
+  const GENDER = ['', '公', '母'];
+  const STATUS = ['', '登記', '轉讓', '變更', '除戶'];
+  const NEUTER = ['', '是', '否'];
+  const FIELDS = [
+    { k: 'breed', label: '品種', type: 'text', ph: '例：米克斯' },
+    { k: 'gender', label: '性別', type: 'select', opts: GENDER },
+    { k: 'status', label: '狀態', type: 'select', opts: STATUS },
+    { k: 'neuter', label: '已絕育', type: 'select', opts: NEUTER },
+    { k: 'rabies', label: '狂犬針日期', type: 'text', ph: 'YYYY/MM/DD' },
+    { k: 'note', label: '備註', type: 'text', full: true, ph: '其他備註' },
+  ];
+  const today = () => new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+
+  const summary = (rec) => {
+    if (!rec) return '';
+    const p = [];
+    if (rec.breed) p.push(rec.breed);
+    if (rec.gender) p.push(rec.gender);
+    if (rec.status) p.push(rec.status);
+    if (rec.neuter) p.push('絕育' + rec.neuter);
+    return p.join('・');
+  };
+
+  const patch = (id, rec) => {
+    const items = load();
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
+    it.rec = Object.assign({}, rec, { updated: today() });
+    save(items); render();
+  };
+
+  // 建立展開區（檢視 + 編輯查詢結果）
+  const buildDetail = (it) => {
+    const d = document.createElement('div');
+    d.className = 'detail'; d.hidden = true;
+
+    const renderView = () => {
+      d.innerHTML = '';
+      const rec = it.rec;
+      if (rec && summary(rec)) {
+        const view = document.createElement('div');
+        view.className = 'view';
+        FIELDS.forEach((f) => {
+          if (!rec[f.k]) return;
+          const row = document.createElement('div');
+          row.className = 'drow';
+          row.innerHTML = '<span class="dk">' + f.label + '</span><span class="dv"></span>';
+          row.querySelector('.dv').textContent = rec[f.k];
+          view.appendChild(row);
+        });
+        if (rec.updated) {
+          const u = document.createElement('div');
+          u.className = 'upd'; u.textContent = '紀錄更新：' + rec.updated;
+          view.appendChild(u);
+        }
+        d.appendChild(view);
+      } else {
+        const hint = document.createElement('div');
+        hint.style.cssText = 'font-size:.78rem;color:var(--muted);margin-bottom:2px';
+        hint.textContent = '查到結果後，記錄下來下次免再查。';
+        d.appendChild(hint);
+      }
+      const edit = document.createElement('button');
+      edit.className = 'editbtn';
+      edit.textContent = (rec && summary(rec)) ? '✎ 編輯紀錄' : '＋ 記錄查詢結果';
+      edit.onclick = renderEdit;
+      d.appendChild(edit);
+    };
+
+    const renderEdit = () => {
+      d.innerHTML = '';
+      const rec = it.rec || {};
+      const form = document.createElement('div');
+      form.className = 'edit';
+      const inputs = {};
+      FIELDS.forEach((f) => {
+        const lab = document.createElement('label');
+        if (f.full) lab.className = 'full';
+        lab.append(document.createTextNode(f.label));
+        let el;
+        if (f.type === 'select') {
+          el = document.createElement('select');
+          f.opts.forEach((o) => {
+            const op = document.createElement('option');
+            op.value = o; op.textContent = o || '—';
+            el.appendChild(op);
+          });
+        } else {
+          el = document.createElement('input');
+          el.type = 'text'; el.placeholder = f.ph || '';
+        }
+        el.value = rec[f.k] || '';
+        inputs[f.k] = el;
+        lab.appendChild(el);
+        form.appendChild(lab);
+      });
+      d.appendChild(form);
+
+      const btns = document.createElement('div');
+      btns.className = 'ebtns';
+      const save = document.createElement('button');
+      save.className = 'save'; save.textContent = '儲存';
+      save.onclick = () => {
+        const rec2 = {};
+        FIELDS.forEach((f) => { rec2[f.k] = (inputs[f.k].value || '').trim(); });
+        patch(it.id, rec2);
+        toast('已記錄 ✓');
+      };
+      const cancel = document.createElement('button');
+      cancel.className = 'cancel'; cancel.textContent = '取消';
+      cancel.onclick = renderView;
+      btns.append(save, cancel);
+      d.appendChild(btns);
+    };
+
+    renderView();
+    return d;
+  };
+
   const render = () => {
     const items = load();
     $list.innerHTML = '';
     $empty.style.display = items.length ? 'none' : 'block';
     items.forEach((it) => {
       const li = document.createElement('li');
+      const row1 = document.createElement('div');
+      row1.className = 'row1';
+
       const meta = document.createElement('div');
       meta.className = 'meta';
       const b = document.createElement('b');
@@ -294,6 +449,12 @@
       const num = document.createElement('span');
       num.className = 'num'; num.textContent = it.chip;
       meta.append(b, num);
+      const s = summary(it.rec);
+      if (s) {
+        const sub = document.createElement('span');
+        sub.className = 'sub'; sub.textContent = '🐾 ' + s;
+        meta.appendChild(sub);
+      }
 
       const copyBtn = document.createElement('button');
       copyBtn.className = 'act'; copyBtn.title = '複製'; copyBtn.textContent = '⧉';
@@ -305,8 +466,8 @@
       const qBtn = document.createElement('button');
       qBtn.className = 'act q'; qBtn.title = '查詢'; qBtn.textContent = '🔍';
       qBtn.onclick = async () => {
-        await copyText(it.chip);
-        toast('已複製晶片號碼，貼到查詢欄即可');
+        const ok = await copyText(it.chip);
+        toast(ok ? '已複製晶片號碼 ⮕ 到官網「長按貼上」並填驗證碼' : '請手動複製晶片號碼');
         window.open(OFFICIAL, '_blank', 'noopener');
       };
 
@@ -317,7 +478,10 @@
         save(load().filter((x) => x.id !== it.id)); render();
       };
 
-      li.append(meta, copyBtn, qBtn, delBtn);
+      row1.append(meta, copyBtn, qBtn, delBtn);
+      const detail = buildDetail(it);
+      meta.onclick = () => { detail.hidden = !detail.hidden; };
+      li.append(row1, detail);
       $list.appendChild(li);
     });
   };
