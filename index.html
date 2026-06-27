@@ -224,7 +224,7 @@
   <div class="section-label">我的常用晶片號碼</div>
   <div class="fav">
     <div class="add">
-      <input id="favChip" inputmode="numeric" maxlength="15" placeholder="晶片號碼（數字）" />
+      <input id="favChip" inputmode="numeric" placeholder="晶片號碼（可含連字號）" />
       <input id="favName" maxlength="12" placeholder="名稱（選填）" />
       <button id="favAdd" type="button">＋ 加入</button>
     </div>
@@ -612,7 +612,7 @@
   });
 
   document.getElementById('favAdd').addEventListener('click', () => {
-    const chip = ($chip.value || '').replace(/\D/g, '');
+    const chip = ($chip.value || '').replace(/\D/g, '').slice(0, 15);
     if (chip.length < 8) { toast('請輸入有效晶片號碼（至少 8 碼數字）'); $chip.focus(); return; }
     const items = load();
     if (items.some((x) => x.chip === chip)) { toast('這個晶片號碼已存在'); return; }
@@ -621,7 +621,7 @@
     $chip.value = ''; $name.value = '';
     render(); toast('已加入常用 ✓');
   });
-  $chip.addEventListener('input', () => { $chip.value = $chip.value.replace(/\D/g, ''); });
+  $chip.addEventListener('input', () => { $chip.value = $chip.value.replace(/\D/g, '').slice(0, 15); });
   $chip.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
   $name.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
 
