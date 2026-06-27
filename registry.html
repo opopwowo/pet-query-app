@@ -47,6 +47,15 @@
   .stat .big{font-size:1.35rem;font-weight:700}
   .stat .lb{font-size:.7rem;color:var(--muted);margin-top:2px}
 
+  /* 匯出／清除 */
+  .regtools{display:flex;gap:8px;margin-top:10px}
+  .regtools button{
+    flex:1;height:40px;border:1px solid var(--line);background:var(--card);border-radius:11px;
+    font-size:.84rem;font-weight:600;cursor:pointer;color:var(--teal);
+  }
+  .regtools button#clearBtn{color:#b91c1c}
+  .regtools button:active{transform:scale(.97)}
+
   /* 搜尋 */
   .search{position:relative;margin:10px 0}
   .search input{
@@ -99,12 +108,12 @@
 <main>
   <div class="section-label">匯入清冊</div>
   <div class="import">
-    <label class="impbtn">⬆ 匯入官方清冊（Excel / CSV）
-      <input id="file" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+    <label class="impbtn">⬆ 匯入清冊（Excel / CSV / 備份）
+      <input id="file" type="file" accept=".xlsx,.xls,.csv,.json,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
     </label>
     <div class="hint">
-      在官網「名下寵物清冊」頁<b>下載 Excel</b>，再選擇該檔案。<br />
-      資料只會存在<b>這支手機</b>，不會上傳。
+      在官網「名下寵物清冊」頁<b>下載 Excel</b>，再選擇該檔案；<br />
+      或選擇先前<b>匯出的 JSON 備份</b>還原。資料只會存在<b>這支手機</b>，不會上傳。
     </div>
   </div>
   <div id="status"></div>
@@ -112,6 +121,10 @@
   <div id="content" style="display:none">
     <div class="section-label">摘要</div>
     <div class="sum" id="sum"></div>
+    <div class="regtools">
+      <button id="exportBtn" type="button">⬇ 匯出備份</button>
+      <button id="clearBtn" type="button">🗑 清除</button>
+    </div>
     <div class="search">
       <span class="si">🔍</span>
       <input id="q" type="search" placeholder="搜尋寵物名稱／晶片號／品種" />
@@ -178,23 +191,56 @@
     if (!file) return;
     setStatus('讀取中…');
     try {
-      await loadXLSX();
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
-      const rows = parseAoA(aoa);
-      if (!rows.length) throw new Error('檔案中沒有寵物資料');
+      const isJson = /\.json$/i.test(file.name) || file.type === 'application/json';
+      let rows, owner;
+      if (isJson) {
+        // 還原 JSON 備份
+        const data = JSON.parse(await file.text());
+        rows = Array.isArray(data) ? data : data.rows;
+        if (!Array.isArray(rows) || !rows.length) throw new Error('備份檔格式不正確');
+        owner = (data && data.owner) || (rows[0] && rows[0].owner) || '';
+      } else {
+        // 解析官方 Excel / CSV
+        await loadXLSX();
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+        rows = parseAoA(aoa);
+        if (!rows.length) throw new Error('檔案中沒有寵物資料');
+        owner = rows[0].owner || '';
+      }
       save({ importedAt: new Date().toISOString().slice(0,10).replace(/-/g,'/'),
-             fileName: file.name, owner: rows[0].owner || '', rows });
-      setStatus('');
+             fileName: file.name, owner, rows });
+      setStatus('✓ 已匯入 ' + rows.length + ' 筆');
+      setTimeout(() => setStatus(''), 2000);
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setStatus('❌ ' + (err.message || '匯入失敗') +
-        (/load failed/.test(err.message||'') ? '（匯入需連線載入解析元件）' : ''));
+        (/load failed/.test(err.message||'') ? '（匯入 Excel 需連線載入解析元件）' : ''));
     }
     e.target.value = '';
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = load();
+    if (!data || !data.rows || !data.rows.length) { setStatus('沒有可匯出的資料'); return; }
+    const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '名下寵物清冊備份_' + data.importedAt.replace(/\//g, '') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus('已匯出備份（' + data.rows.length + ' 筆）'); setTimeout(() => setStatus(''), 2200);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('確定清除本機的清冊資料？（可再重新匯入）')) return;
+    localStorage.removeItem(KEY); filter = '';
+    document.getElementById('q').value = '';
+    render(); setStatus('已清除'); setTimeout(() => setStatus(''), 1500);
   });
 
   document.getElementById('q').addEventListener('input', (e) => { filter = e.target.value; render(); });
