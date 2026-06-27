@@ -91,6 +91,44 @@
   }
   .note a{color:var(--teal)}
 
+  /* 我的常用晶片號碼 */
+  .fav{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:14px;margin-top:6px;
+  }
+  .fav .add{display:flex;gap:8px;flex-wrap:wrap}
+  .fav .add input{
+    min-width:0;height:42px;border:1px solid var(--line);box-sizing:border-box;
+    border-radius:11px;padding:0 12px;font-size:.9rem;background:#fafafa;color:var(--ink);
+  }
+  .fav .add input#favChip{flex:1 1 100%}
+  .fav .add input#favName{flex:1 1 auto}
+  .fav .add input:focus{outline:none;border-color:var(--teal);background:#fff}
+  .fav .add button{
+    flex:0 0 auto;height:42px;padding:0 18px;border:none;border-radius:11px;white-space:nowrap;
+    background:var(--teal);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;
+  }
+  .fav .add button:active{transform:scale(.97)}
+  .fav ul{list-style:none;margin:12px 0 0;padding:0}
+  .fav li{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 4px;border-top:1px solid var(--line);
+  }
+  .fav li .meta{flex:1;min-width:0}
+  .fav li .meta b{display:block;font-size:.92rem;line-height:1.3}
+  .fav li .meta .num{
+    font-size:.8rem;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
+    word-break:break-all;
+  }
+  .fav li .act{
+    flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:#fff;
+    border-radius:10px;display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
+  }
+  .fav li .act.q{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .fav li .act.del{color:#b91c1c}
+  .fav li .act:active{transform:scale(.92)}
+  .fav .empty{font-size:.78rem;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.6}
+
   /* 安裝提示 */
   #install{
     display:none;flex-wrap:wrap;align-items:center;gap:8px 10px;
@@ -127,6 +165,17 @@
     <span class="tx"><b>開始查詢</b><span>進入官方查詢系統</span></span>
     <span class="arrow">›</span>
   </a>
+
+  <div class="section-label">我的常用晶片號碼</div>
+  <div class="fav">
+    <div class="add">
+      <input id="favChip" inputmode="numeric" maxlength="15" placeholder="晶片號碼（數字）" />
+      <input id="favName" maxlength="12" placeholder="名稱（選填）" />
+      <button id="favAdd" type="button">＋ 加入</button>
+    </div>
+    <ul id="favList"></ul>
+    <p class="empty" id="favEmpty">尚未儲存任何晶片號碼。<br />號碼只會存在這支手機，不會上傳。</p>
+  </div>
 
   <div class="section-label">查詢方式</div>
 
@@ -206,6 +255,88 @@
     bar.querySelector('span').textContent = '📲 點下方「分享」→「加入主畫面」即可當 App';
     btn.style.display = 'none';
   }
+
+  // ===== 我的常用晶片號碼（只存本機 localStorage）=====
+  const OFFICIAL = 'https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999';
+  const KEY = 'pet_chips_v1';
+  const $chip = document.getElementById('favChip');
+  const $name = document.getElementById('favName');
+  const $list = document.getElementById('favList');
+  const $empty = document.getElementById('favEmpty');
+
+  const load = () => {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch { return []; }
+  };
+  const save = (a) => localStorage.setItem(KEY, JSON.stringify(a));
+
+  const copyText = async (text) => {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
+      const t = document.createElement('textarea');
+      t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch {}
+      document.body.removeChild(t); return ok;
+    }
+  };
+
+  const render = () => {
+    const items = load();
+    $list.innerHTML = '';
+    $empty.style.display = items.length ? 'none' : 'block';
+    items.forEach((it) => {
+      const li = document.createElement('li');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const b = document.createElement('b');
+      b.textContent = it.name || '未命名';
+      const num = document.createElement('span');
+      num.className = 'num'; num.textContent = it.chip;
+      meta.append(b, num);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'act'; copyBtn.title = '複製'; copyBtn.textContent = '⧉';
+      copyBtn.onclick = async () => {
+        const ok = await copyText(it.chip);
+        toast(ok ? '已複製晶片號碼' : '複製失敗，請手動複製');
+      };
+
+      const qBtn = document.createElement('button');
+      qBtn.className = 'act q'; qBtn.title = '查詢'; qBtn.textContent = '🔍';
+      qBtn.onclick = async () => {
+        await copyText(it.chip);
+        toast('已複製晶片號碼，貼到查詢欄即可');
+        window.open(OFFICIAL, '_blank', 'noopener');
+      };
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'act del'; delBtn.title = '刪除'; delBtn.textContent = '✕';
+      delBtn.onclick = () => {
+        if (!confirm('刪除「' + (it.name || it.chip) + '」？')) return;
+        save(load().filter((x) => x.id !== it.id)); render();
+      };
+
+      li.append(meta, copyBtn, qBtn, delBtn);
+      $list.appendChild(li);
+    });
+  };
+
+  document.getElementById('favAdd').addEventListener('click', () => {
+    const chip = ($chip.value || '').replace(/\D/g, '');
+    if (chip.length < 8) { toast('請輸入有效晶片號碼（至少 8 碼數字）'); $chip.focus(); return; }
+    const items = load();
+    if (items.some((x) => x.chip === chip)) { toast('這個晶片號碼已存在'); return; }
+    items.push({ id: Date.now().toString(36), chip, name: ($name.value || '').trim() });
+    save(items);
+    $chip.value = ''; $name.value = '';
+    render(); toast('已加入常用 ✓');
+  });
+  $chip.addEventListener('input', () => { $chip.value = $chip.value.replace(/\D/g, ''); });
+  $chip.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
+  $name.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
+
+  render();
 </script>
 </body>
 </html>
