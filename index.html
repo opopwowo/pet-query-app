@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>寵物登記查詢</title>
+<meta name="description" content="農業部寵物登記管理資訊網 — 寵物資料與違反動保法紀錄查詢" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#0f766e" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" />
+
+<!-- iOS 加入主畫面 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="寵物查詢" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+<style>
+  :root{
+    --teal:#0f766e; --teal-d:#0c5c56; --teal-l:#14b8a6;
+    --bg:#f1f5f4; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink);
+    min-height:100dvh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  /* 頂部漸層標頭 */
+  header{
+    background:linear-gradient(135deg,var(--teal),var(--teal-d));
+    color:#fff; padding:calc(28px + env(safe-area-inset-top)) 20px 26px;
+    text-align:center; border-radius:0 0 26px 26px;
+    box-shadow:0 6px 18px rgba(15,118,110,.25);
+  }
+  .logo{
+    width:66px;height:66px;margin:0 auto 12px;display:block;
+    background:rgba(255,255,255,.15);border-radius:20px;padding:10px;
+  }
+  header h1{font-size:1.45rem;margin:0 0 4px;letter-spacing:.5px}
+  header p{margin:0;font-size:.82rem;opacity:.85}
+
+  main{max-width:480px;margin:0 auto;padding:20px 16px 32px}
+
+  .btn{
+    display:flex;align-items:center;gap:14px;
+    width:100%;border:none;cursor:pointer;text-decoration:none;
+    background:var(--card);color:var(--ink);
+    padding:18px 18px;border-radius:18px;margin-bottom:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,.05);
+    border:1px solid var(--line);
+    transition:transform .12s ease, box-shadow .12s ease;
+    text-align:left;
+  }
+  .btn:active{transform:scale(.98);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .btn .ico{
+    flex:0 0 46px;height:46px;border-radius:14px;
+    display:grid;place-items:center;font-size:24px;
+    background:#e6f4f1;color:var(--teal);
+  }
+  .btn .tx b{display:block;font-size:1.02rem}
+  .btn .tx span{font-size:.78rem;color:var(--muted)}
+  .btn .arrow{margin-left:auto;color:#cbd5e1;font-size:1.3rem}
+
+  .btn.primary{
+    background:linear-gradient(135deg,var(--teal),var(--teal-d));
+    color:#fff;border:none;box-shadow:0 6px 16px rgba(15,118,110,.3);
+  }
+  .btn.primary .ico{background:rgba(255,255,255,.2);color:#fff}
+  .btn.primary .tx span{color:rgba(255,255,255,.8)}
+  .btn.primary .arrow{color:rgba(255,255,255,.7)}
+
+  .section-label{font-size:.78rem;color:var(--muted);margin:18px 4px 10px;font-weight:600}
+
+  .info{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:16px;margin-top:6px;font-size:.85rem;line-height:1.7;
+  }
+  .info .row{display:flex;gap:8px}
+  .info .row .k{color:var(--muted);flex:0 0 72px}
+  .info hr{border:none;border-top:1px solid var(--line);margin:12px 0}
+
+  .note{
+    font-size:.72rem;color:var(--muted);line-height:1.6;
+    margin-top:18px;text-align:center;padding:0 8px;
+  }
+  .note a{color:var(--teal)}
+
+  /* 安裝提示 */
+  #install{
+    display:none;flex-wrap:wrap;align-items:center;gap:8px 10px;
+    background:#fffbe6;border:1px solid #fde68a;color:#92660a;
+    border-radius:14px;padding:12px 14px;margin-bottom:16px;font-size:.82rem;
+  }
+  #install > span{flex:1 1 100%;min-width:0;line-height:1.45}
+  #install button{flex:0 0 auto;margin-left:auto;border:none;background:var(--teal);color:#fff;
+    padding:8px 14px;border-radius:10px;font-size:.8rem;cursor:pointer;white-space:nowrap;
+  }
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:#111827;color:#fff;padding:11px 18px;border-radius:12px;
+    font-size:.82rem;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:90%;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="icons/icon-192.png" alt="logo" />
+  <h1>寵物登記查詢</h1>
+  <p>農業部寵物登記管理資訊網</p>
+</header>
+
+<main>
+  <div id="install">
+    <span>📲 將此查詢加入主畫面，像 App 一樣使用</span>
+    <button id="installBtn">安裝</button>
+  </div>
+
+  <a class="btn primary" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
+    <span class="ico">🔍</span>
+    <span class="tx"><b>開始查詢</b><span>進入官方查詢系統</span></span>
+    <span class="arrow">›</span>
+  </a>
+
+  <div class="section-label">查詢方式</div>
+
+  <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
+    <span class="ico">🏷️</span>
+    <span class="tx"><b>依晶片號碼查詢</b><span>輸入寵物晶片號碼</span></span>
+    <span class="arrow">›</span>
+  </a>
+
+  <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
+    <span class="ico">👤</span>
+    <span class="tx"><b>依飼主資料查詢</b><span>飼主生日 + 證號</span></span>
+    <span class="arrow">›</span>
+  </a>
+
+  <a class="btn" href="https://www.pet.gov.tw/" target="_blank" rel="noopener">
+    <span class="ico">🏠</span>
+    <span class="tx"><b>寵物登記管理資訊網</b><span>官方網站首頁</span></span>
+    <span class="arrow">›</span>
+  </a>
+
+  <div class="section-label">查得到的資料</div>
+  <div class="info">
+    <div class="row"><span class="k">飼主資訊</span><span>姓名・生日・戶籍/通訊地址</span></div>
+    <div class="row"><span class="k">寵物資訊</span><span>性別・品種・晶片號・狀態・絕育</span></div>
+    <div class="row"><span class="k">其他</span><span>狂犬病接種・登記單位・母犬貓・備註</span></div>
+    <div class="row"><span class="k">違規紀錄</span><span>是否違反動物保護法</span></div>
+    <hr />
+    <div class="row"><span class="k">服務時間</span><span>上班日 08:30–12:30、13:30–17:30</span></div>
+  </div>
+
+  <p class="note">
+    本程式為非官方的「捷徑外殼」，查詢與資料皆由<br />
+    農業部官方系統 <a href="https://www.pet.gov.tw/" target="_blank" rel="noopener">pet.gov.tw</a> 提供。<br />
+    需驗證碼／自然人憑證等身分驗證。
+  </p>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // 註冊 service worker（讓 App 可安裝）
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () =>
+      navigator.serviceWorker.register('sw.js').catch(() => {})
+    );
+  }
+
+  const toast = (msg) => {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  };
+
+  // Android / Chrome：自訂安裝按鈕
+  let deferred = null;
+  const bar = document.getElementById('install');
+  const btn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferred = e; bar.style.display = 'flex';
+  });
+  btn.addEventListener('click', async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    await deferred.userChoice;
+    deferred = null; bar.style.display = 'none';
+  });
+  window.addEventListener('appinstalled', () => {
+    bar.style.display = 'none'; toast('已加入主畫面 ✓');
+  });
+
+  // iOS：提示用「分享 → 加入主畫面」
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isIOS && !standalone) {
+    bar.style.display = 'flex';
+    bar.querySelector('span').textContent = '📲 點下方「分享」→「加入主畫面」即可當 App';
+    btn.style.display = 'none';
+  }
+</script>
+</body>
+</html>
