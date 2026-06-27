@@ -161,6 +161,29 @@
   }
   .fav .tools button:active,.fav .tools .impbtn:active{transform:scale(.97);background:#f0faf7}
 
+  /* 搜尋 */
+  .fav .search{position:relative;margin-top:10px}
+  .fav .search input{
+    width:100%;height:40px;border:1px solid var(--line);border-radius:11px;
+    padding:0 34px 0 34px;font-size:.88rem;background:#fafafa;color:var(--ink);box-sizing:border-box;
+  }
+  .fav .search input:focus{outline:none;border-color:var(--teal);background:#fff}
+  .fav .search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem}
+  .fav .search .sx{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
+    color:var(--muted);font-size:1rem;cursor:pointer;width:28px;height:28px;display:none;
+  }
+  .fav .search.has .sx{display:block}
+
+  /* 拖曳把手 */
+  .fav li .drag{
+    flex:0 0 auto;width:26px;height:34px;display:grid;place-items:center;cursor:grab;
+    color:#cbd5e1;font-size:18px;touch-action:none;user-select:none;
+  }
+  .fav li.dragging{opacity:.65;background:#eef7f4;border-radius:10px}
+  .fav li.dragging .drag{cursor:grabbing}
+  .fav .nores{font-size:.8rem;color:var(--muted);text-align:center;padding:14px 0}
+
   /* 安裝提示 */
   #install{
     display:none;flex-wrap:wrap;align-items:center;gap:8px 10px;
@@ -204,6 +227,11 @@
       <input id="favChip" inputmode="numeric" maxlength="15" placeholder="晶片號碼（數字）" />
       <input id="favName" maxlength="12" placeholder="名稱（選填）" />
       <button id="favAdd" type="button">＋ 加入</button>
+    </div>
+    <div class="search" id="favSearchWrap">
+      <span class="si">🔍</span>
+      <input id="favSearch" type="search" placeholder="搜尋名稱或晶片號碼" />
+      <button class="sx" id="favSearchClear" type="button" aria-label="清除">✕</button>
     </div>
     <ul id="favList"></ul>
     <p class="empty" id="favEmpty">尚未儲存任何晶片號碼。<br />號碼只會存在這支手機，不會上傳。</p>
@@ -447,14 +475,42 @@
     return d;
   };
 
+  let filter = '';
+
   const render = () => {
     const items = load();
     $list.innerHTML = '';
     $empty.style.display = items.length ? 'none' : 'block';
-    items.forEach((it) => {
+    document.getElementById('favSearchWrap').style.display = items.length > 1 ? 'block' : 'none';
+
+    const q = filter.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
+    const shown = q
+      ? items.filter((it) =>
+          (it.name || '').toLowerCase().includes(q) ||
+          (digits && it.chip.includes(digits)))
+      : items;
+
+    if (items.length && !shown.length) {
+      const nr = document.createElement('div');
+      nr.className = 'nores'; nr.textContent = '找不到符合「' + filter + '」的寵物';
+      $list.appendChild(nr);
+      return;
+    }
+
+    shown.forEach((it) => {
       const li = document.createElement('li');
+      li.dataset.id = it.id;
       const row1 = document.createElement('div');
       row1.className = 'row1';
+
+      // 拖曳把手（搜尋中不顯示，避免排序混淆）
+      if (!q) {
+        const handle = document.createElement('div');
+        handle.className = 'drag'; handle.title = '拖曳排序'; handle.textContent = '⠿';
+        handle.addEventListener('pointerdown', (e) => startDrag(e, li));
+        row1.appendChild(handle);
+      }
 
       const meta = document.createElement('div');
       meta.className = 'meta';
@@ -499,6 +555,61 @@
       $list.appendChild(li);
     });
   };
+
+  // ===== 拖曳排序（pointer events，支援觸控）=====
+  let dragLi = null;
+  function startDrag(e, li) {
+    if (filter) return;
+    dragLi = li;
+    li.classList.add('dragging');
+    const handle = e.currentTarget;
+    try { handle.setPointerCapture(e.pointerId); } catch {}
+    handle.addEventListener('pointermove', onDragMove);
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    e.preventDefault();
+  }
+  function onDragMove(e) {
+    if (!dragLi) return;
+    const y = e.clientY;
+    const sibs = [...$list.querySelectorAll('li:not(.dragging)')];
+    let before = null;
+    for (const s of sibs) {
+      const r = s.getBoundingClientRect();
+      if (y < r.top + r.height / 2) { before = s; break; }
+    }
+    if (before) $list.insertBefore(dragLi, before);
+    else $list.appendChild(dragLi);
+  }
+  function endDrag(e) {
+    if (!dragLi) return;
+    const handle = e.currentTarget;
+    handle.removeEventListener('pointermove', onDragMove);
+    handle.removeEventListener('pointerup', endDrag);
+    handle.removeEventListener('pointercancel', endDrag);
+    dragLi.classList.remove('dragging');
+    dragLi = null;
+    persistOrder();
+  }
+  function persistOrder() {
+    const ids = [...$list.querySelectorAll('li')].map((li) => li.dataset.id);
+    const items = load();
+    items.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+    save(items);
+  }
+
+  // ===== 搜尋 =====
+  const $search = document.getElementById('favSearch');
+  const $searchWrap = document.getElementById('favSearchWrap');
+  $search.addEventListener('input', () => {
+    filter = $search.value;
+    $searchWrap.classList.toggle('has', !!filter);
+    render();
+  });
+  document.getElementById('favSearchClear').addEventListener('click', () => {
+    filter = ''; $search.value = ''; $searchWrap.classList.remove('has');
+    render(); $search.focus();
+  });
 
   document.getElementById('favAdd').addEventListener('click', () => {
     const chip = ($chip.value || '').replace(/\D/g, '');
