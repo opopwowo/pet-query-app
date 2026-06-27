@@ -152,6 +152,14 @@
     margin-top:4px;width:100%;height:38px;border:1px dashed var(--teal);background:#fff;
     color:var(--teal);border-radius:10px;font-size:.84rem;cursor:pointer;
   }
+  /* 匯出／匯入備份 */
+  .fav .tools{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .fav .tools button,.fav .tools .impbtn{
+    flex:1;height:40px;border:1px solid var(--line);background:#fff;color:var(--teal);
+    border-radius:11px;font-size:.84rem;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:4px;
+  }
+  .fav .tools button:active,.fav .tools .impbtn:active{transform:scale(.97);background:#f0faf7}
 
   /* 安裝提示 */
   #install{
@@ -199,6 +207,12 @@
     </div>
     <ul id="favList"></ul>
     <p class="empty" id="favEmpty">尚未儲存任何晶片號碼。<br />號碼只會存在這支手機，不會上傳。</p>
+    <div class="tools">
+      <button id="favExport" type="button">⬇ 匯出備份</button>
+      <label class="impbtn">⬆ 匯入備份
+        <input id="favImport" type="file" accept="application/json,.json" hidden />
+      </label>
+    </div>
   </div>
 
   <div class="section-label">查詢方式</div>
@@ -499,6 +513,63 @@
   $chip.addEventListener('input', () => { $chip.value = $chip.value.replace(/\D/g, ''); });
   $chip.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
   $name.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('favAdd').click(); });
+
+  // ===== 匯出／匯入備份 =====
+  document.getElementById('favExport').addEventListener('click', () => {
+    const items = load();
+    if (!items.length) { toast('沒有可匯出的資料'); return; }
+    const payload = { app: 'pet-query', v: 1, exportedAt: today(), items };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '寵物卡片備份_' + today().replace(/\//g, '') + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('已匯出 ' + items.length + ' 筆備份');
+  });
+
+  document.getElementById('favImport').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let incoming;
+      try {
+        const parsed = JSON.parse(reader.result);
+        incoming = Array.isArray(parsed) ? parsed : parsed.items;
+      } catch { incoming = null; }
+      if (!Array.isArray(incoming)) { toast('檔案格式不正確'); e.target.value = ''; return; }
+
+      const items = load();
+      const byChip = new Map(items.map((x) => [x.chip, x]));
+      let added = 0, updated = 0;
+      incoming.forEach((raw) => {
+        const chip = String(raw && raw.chip || '').replace(/\D/g, '');
+        if (chip.length < 8) return;
+        const entry = {
+          id: (raw.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+          chip,
+          name: (raw.name || '').toString().slice(0, 20),
+          rec: raw.rec && typeof raw.rec === 'object' ? raw.rec : undefined,
+        };
+        if (byChip.has(chip)) {
+          const cur = byChip.get(chip);
+          cur.name = entry.name || cur.name;
+          if (entry.rec) cur.rec = entry.rec;
+          updated++;
+        } else {
+          const item = { id: entry.id, chip, name: entry.name };
+          if (entry.rec) item.rec = entry.rec;
+          items.push(item); byChip.set(chip, item); added++;
+        }
+      });
+      save(items); render();
+      toast('匯入完成：新增 ' + added + '、更新 ' + updated + ' 筆');
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
 
   render();
 </script>
