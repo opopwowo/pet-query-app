@@ -119,6 +119,8 @@
     word-break:break-all;
   }
   .fav li .meta .sub{display:block;font-size:.76rem;color:var(--teal);margin-top:2px}
+  .fav li .meta .sub.due{color:#b91c1c;font-weight:600}
+  .fav li .meta .sub.soon{color:#b45309;font-weight:600}
   .fav li .act{
     flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:#fff;
     border-radius:10px;display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
@@ -402,6 +404,21 @@
   ];
   const today = () => new Date().toISOString().slice(0, 10).replace(/-/g, '/');
 
+  // 狂犬病疫苗每年須補打：距上次施打滿一年前 30 天內提醒、逾期警示
+  const rabiesInfo = (rec) => {
+    if (!rec || !rec.rabies) return null;
+    const m = String(rec.rabies).match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+    if (!m) return null;
+    const last = new Date(+m[1], +m[2] - 1, +m[3]);
+    if (isNaN(last)) return null;
+    const due = new Date(last); due.setFullYear(due.getFullYear() + 1);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const days = Math.round((due - now) / 86400000);
+    if (days < 0) return { state: 'due', days: -days };
+    if (days <= 30) return { state: 'soon', days };
+    return null;
+  };
+
   const summary = (rec) => {
     if (!rec) return '';
     const p = [];
@@ -557,6 +574,16 @@
         const sub = document.createElement('span');
         sub.className = 'sub'; sub.textContent = '🐾 ' + s;
         meta.appendChild(sub);
+      }
+      const rb = rabiesInfo(it.rec);
+      if (rb) {
+        const w = document.createElement('span');
+        w.className = 'sub ' + rb.state;
+        w.textContent = rb.state === 'due'
+          ? '💉 狂犬針已逾期 ' + rb.days + ' 天，記得補打'
+          : (rb.days === 0 ? '💉 狂犬針今天滿一年，記得補打'
+                           : '💉 狂犬針 ' + rb.days + ' 天後滿一年');
+        meta.appendChild(w);
       }
 
       const copyBtn = document.createElement('button');

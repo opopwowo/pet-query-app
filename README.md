@@ -9,13 +9,18 @@
 ## 檔案
 ```
 寵物查詢APP/
-├─ index.html            啟動頁（按鈕導向官方查詢）
+├─ index.html            啟動頁（官方查詢入口＋常用晶片卡片、狂犬針到期提醒）
+├─ registry.html         我的名下寵物清冊（匯入官方 Excel/CSV，本機檢視、一鍵加入常用）
+├─ stats.html            全國登記統計（各縣市、年度趨勢、絕育率）
+├─ data/pet-stats.json   統計資料
 ├─ manifest.webmanifest  PWA 設定（名稱、圖示、顏色）
-├─ sw.js                 service worker（可安裝＋啟動頁離線）
+├─ sw.js                 service worker（可安裝＋離線開啟）
 ├─ icons/                App 圖示（192/512/maskable/apple-touch）
 ├─ favicon-32.png
 └─ make_icons.py         重新產生圖示用
 ```
+
+所有個人資料（常用晶片、清冊）只存在手機的 localStorage，不上傳、不進 repo。
 
 ## 本機預覽
 PWA 必須用 http 開啟（service worker 不能在 file:// 下運作）：

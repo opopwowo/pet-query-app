@@ -80,6 +80,7 @@
     display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
   }
   .pet .act.q{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .pet .act.favb{color:#d97706}
   .pet .act:active{transform:scale(.92)}
   .pet .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
   .pet .tag{font-size:.72rem;padding:3px 9px;border-radius:20px;background:#eef2f1;color:#374151}
@@ -137,6 +138,7 @@
 
 <script>
   const KEY = 'pet_registry_v1';
+  const FAV_KEY = 'pet_chips_v1'; // 首頁「我的常用晶片號碼」共用同一份本機資料
   const OFFICIAL = 'https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999';
   const HMAP = {
     '編號':'no','登記/轉讓日期':'date','姓名':'owner','晶片號碼':'chip','多晶片號碼':'multiChip',
@@ -148,6 +150,8 @@
 
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
   const save = (o) => localStorage.setItem(KEY, JSON.stringify(o));
+  const favLoad = () => { try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch { return []; } };
+  const chipDigits = (c) => String(c || '').replace(/\D/g, '').slice(0, 15);
   const setStatus = (m) => { document.getElementById('status').textContent = m || ''; };
 
   const copyText = async (t) => {
@@ -281,9 +285,10 @@
       (digits && (r.chip || '').includes(digits))) : data.rows;
 
     const $list = document.getElementById('list');
+    const favChips = new Set(favLoad().map((x) => x.chip));
     if (!list.length) { $list.innerHTML = '<div class="nores">找不到符合「' + filter + '」的寵物</div>'; }
     else {
-      $list.innerHTML = list.map((r) => {
+      $list.innerHTML = list.map((r, i) => {
         const tags = [];
         if (r.gender) tags.push('<span class="tag">' + r.gender + '</span>');
         if (r.breed) tags.push('<span class="tag">' + r.breed + '</span>');
@@ -300,7 +305,9 @@
           '<div class="ph"><span class="nm">' + esc(r.name || ('#' + r.no)) + '</span>' +
             (r.type ? '<span class="no">' + r.type + '・#' + r.no + '</span>' : '<span class="no">#' + r.no + '</span>') + '</div>' +
           '<div class="chiprow"><span class="chip">' + esc(r.chip || '—') + '</span>' +
-            (r.chip ? '<button class="act" data-c="' + r.chip + '" title="複製">⧉</button>' +
+            (r.chip ? '<button class="act favb" data-i="' + i + '" title="加入常用">' +
+                        (favChips.has(chipDigits(r.chip)) ? '★' : '☆') + '</button>' +
+                      '<button class="act" data-c="' + r.chip + '" title="複製">⧉</button>' +
                       '<button class="act q" data-q="' + r.chip + '" title="查詢">🔍</button>' : '') +
           '</div>' +
           (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '') +
@@ -321,6 +328,36 @@
       await copyText(b.dataset.q);
       setStatus('已複製晶片號碼 ⮕ 到官網長按貼上'); setTimeout(() => setStatus(''), 2500);
       window.open(OFFICIAL, '_blank', 'noopener');
+    });
+    $list.querySelectorAll('[data-i]').forEach((b) => b.onclick = () => {
+      const r = list[+b.dataset.i];
+      const chip = chipDigits(r.chip);
+      if (chip.length < 8) { setStatus('晶片號碼格式不符，無法加入'); setTimeout(() => setStatus(''), 2000); return; }
+      const favs = favLoad();
+      if (favs.some((x) => x.chip === chip)) {
+        b.textContent = '★';
+        setStatus('「' + (r.name || chip) + '」已在首頁常用清單'); setTimeout(() => setStatus(''), 2000);
+        return;
+      }
+      // 一併帶入清冊已知的品種／性別／絕育，首頁卡片直接有紀錄
+      const rec = {};
+      if (r.breed) rec.breed = r.breed;
+      if (r.gender === '公' || r.gender === '母') rec.gender = r.gender;
+      if (r.neuter === '絕育') rec.neuter = '是';
+      else if (r.neuter === '未絕育') rec.neuter = '否';
+      const item = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        chip,
+        name: (r.name || '').slice(0, 12),
+      };
+      if (Object.keys(rec).length) {
+        rec.updated = new Date().toISOString().slice(0, 10).replace(/-/g, '/');
+        item.rec = rec;
+      }
+      favs.push(item);
+      localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+      b.textContent = '★';
+      setStatus('已加入首頁常用：' + (r.name || chip)); setTimeout(() => setStatus(''), 2200);
     });
   }
 
