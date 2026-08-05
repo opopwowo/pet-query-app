@@ -3,16 +3,124 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
 <title>全國寵物登記統計</title>
+<meta name="description" content="全國寵物登記統計 — 各縣市登記數、年度趨勢與絕育率。" />
+<link rel="canonical" href="https://opopwowo.github.io/pet-query-app/stats.html" />
+
+<!-- 主題色（會由 app.js 依深／淺色動態更新） -->
 <meta name="theme-color" content="#0f766e" />
-<link rel="icon" href="favicon-32.png" sizes="32x32" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest" />
+
+<!-- Favicon / 圖示 -->
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+<!-- iOS / Android 加入主畫面 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="寵物查詢" />
+
+<!-- Open Graph / 社群分享 -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="寵物登記查詢" />
+<meta property="og:title" content="全國寵物登記統計" />
+<meta property="og:description" content="各縣市登記數、年度趨勢與絕育率。" />
+<meta property="og:url" content="https://opopwowo.github.io/pet-query-app/stats.html" />
+<meta property="og:image" content="https://opopwowo.github.io/pet-query-app/icons/icon-512.png" />
+<meta property="og:locale" content="zh_TW" />
+<meta name="twitter:card" content="summary" />
+
+<!-- 佈景主題：先套用避免閃爍（FOUC），並同步瀏覽器 UI 顏色 -->
+<script>
+(function(){try{
+  var p=localStorage.getItem('pet_theme');
+  var sys=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
+  var dark=(p==='dark')||(p!=='light'&&sys);
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.setAttribute('content',dark?'#0f5b54':'#0f766e');
+}catch(e){}})();
+</script>
+<script src="app.js" defer></script>
 <style>
   :root{
-    --teal:#0f766e; --teal-d:#0c5c56; --dog:#0f766e; --cat:#d97706;
-    --bg:#f1f5f4; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    color-scheme:light;
+    --teal:#0f766e; --teal-d:#0c5c56; --link:#0b6058;
+    --btn:#0f766e; --btn-ink:#ffffff;
+    --dog:#0f766e; --cat:#b45309; --cat-btn:#b45309;
+    --bg:#f1f5f4; --card:#ffffff; --card-2:#f7f9f8; --ink:#1f2937; --muted:#5b6673;
+    --line:#e5e7eb; --track:#eef2f1;
+    --up:#c02626; --down:#047857;
+    --tag-r-bg:#fee2e2; --tag-r-ink:#b91c1c;
+    --hdr-1:#0f766e; --hdr-2:#0c5c56;
+    --shadow:rgba(0,0,0,.06); --shadow-strong:rgba(15,118,110,.22);
+    --focus:#0f766e; --danger:#b91c1c;
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --teal:#14b8a6; --teal-d:#0d9488; --link:#5eead4;
+    --btn:#0d5f58; --btn-ink:#ffffff;
+    --dog:#2dd4bf; --cat:#fbbf24;
+    --bg:#0d1210; --card:#161d1b; --card-2:#1e2724; --ink:#e8edeb; --muted:#a7b4b0;
+    --line:#2b3532; --track:#25302d;
+    --up:#f7a8a8; --down:#5ed0a0;
+    --tag-r-bg:#3a1d1d; --tag-r-ink:#f7a8a8;
+    --hdr-1:#0f5b54; --hdr-2:#0a3f3a;
+    --shadow:rgba(0,0,0,.45); --shadow-strong:rgba(0,0,0,.55);
+    --focus:#5eead4; --danger:#f7a8a8;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+  /* ===== 無障礙：跳過連結、focus 樣式、減少動態 ===== */
+  .sr-only{
+    position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+  .skip-link{
+    position:absolute;left:8px;top:-56px;z-index:200;
+    background:var(--card);color:var(--link);border:2px solid var(--focus);
+    padding:10px 16px;border-radius:10px;font-size:.9rem;font-weight:700;text-decoration:none;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+
+  .theme-toggle{
+    position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;
+    width:40px;height:40px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);
+    color:#fff;font-size:1.1rem;line-height:1;cursor:pointer;
+    display:grid;place-items:center;z-index:6;
+  }
+  .theme-toggle:hover{background:rgba(255,255,255,.28)}
+  .theme-toggle:active{transform:scale(.92)}
+  .theme-toggle:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+  .sw-update{
+    position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:120;
+    display:flex;align-items:center;gap:10px;max-width:92%;
+    background:var(--card);color:var(--ink);border:1px solid var(--line);
+    box-shadow:0 8px 24px var(--shadow-strong);
+    border-radius:14px;padding:12px 14px;font-size:.86rem;
+  }
+  .sw-update button{
+    border:none;background:var(--btn);color:var(--btn-ink);
+    padding:9px 15px;border-radius:10px;font-size:.84rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .sw-update button.sw-later{background:transparent;color:var(--muted);padding:9px 6px}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms!important;animation-iteration-count:1!important;
+      transition-duration:.001ms!important;scroll-behavior:auto!important;
+    }
+  }
   html,body{margin:0;padding:0}
   body{
     font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
@@ -20,9 +128,10 @@
     padding-bottom:env(safe-area-inset-bottom);
   }
   header{
-    background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;
-    padding:calc(18px + env(safe-area-inset-top)) 16px 18px;
-    border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(15,118,110,.22);
+    position:relative;
+    background:linear-gradient(135deg,var(--hdr-1),var(--hdr-2));color:#fff;
+    padding:calc(18px + env(safe-area-inset-top)) 56px 18px 16px;
+    border-radius:0 0 22px 22px;box-shadow:0 6px 18px var(--shadow-strong);
     display:flex;align-items:center;gap:12px;
   }
   header a.back{color:#fff;text-decoration:none;font-size:1.5rem;line-height:1;flex:0 0 auto}
@@ -40,16 +149,16 @@
   .stat .dot{width:10px;height:10px;border-radius:50%}
   .stat .big{font-size:1.5rem;font-weight:700;margin:4px 0 0;letter-spacing:.5px}
   .stat .sub{font-size:.72rem;color:var(--muted);margin-top:2px}
-  .stat .up{color:#dc2626} .stat .down{color:#059669}
+  .stat .up{color:var(--up)} .stat .down{color:var(--down)}
 
   /* 切換 */
   .toggle{display:flex;gap:8px;margin:4px 0 0}
   .toggle button{
-    flex:1;height:40px;border:1px solid var(--line);background:#fff;border-radius:11px;
+    flex:1;height:40px;border:1px solid var(--line);background:var(--card);border-radius:11px;
     font-size:.9rem;font-weight:600;color:var(--muted);cursor:pointer;
   }
-  .toggle button.on[data-a="dog"]{background:var(--teal);border-color:var(--teal);color:#fff}
-  .toggle button.on[data-a="cat"]{background:var(--cat);border-color:var(--cat);color:#fff}
+  .toggle button.on[data-a="dog"]{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
+  .toggle button.on[data-a="cat"]{background:var(--cat-btn);border-color:var(--cat-btn);color:#fff}
 
   /* 長條圖 */
   .bars{margin-top:4px}
@@ -58,7 +167,7 @@
   .bar .top{display:flex;justify-content:space-between;font-size:.84rem;margin-bottom:5px}
   .bar .top .nm{font-weight:600}
   .bar .top .vl{color:var(--muted);font-variant-numeric:tabular-nums}
-  .bar .track{height:9px;background:#eef2f1;border-radius:6px;overflow:hidden}
+  .bar .track{height:9px;background:var(--track);border-radius:6px;overflow:hidden}
   .bar .fill{height:100%;border-radius:6px;transition:width .5s ease}
   .bar .rate{font-size:.7rem;color:var(--muted);margin-top:3px}
 
@@ -68,35 +177,39 @@
   .trend .col h3{margin:0 0 8px;font-size:.86rem;display:flex;align-items:center;gap:6px}
   .trend .yr{display:flex;align-items:center;gap:8px;margin:6px 0}
   .trend .yr .y{font-size:.74rem;color:var(--muted);flex:0 0 34px}
-  .trend .yr .t{flex:1;height:8px;background:#eef2f1;border-radius:5px;overflow:hidden}
+  .trend .yr .t{flex:1;height:8px;background:var(--track);border-radius:5px;overflow:hidden}
   .trend .yr .t i{display:block;height:100%;border-radius:5px}
   .trend .yr .n{font-size:.74rem;flex:0 0 auto;font-variant-numeric:tabular-nums}
 
   .note{font-size:.72rem;color:var(--muted);line-height:1.6;margin-top:18px;text-align:center;padding:0 8px}
-  .note a{color:var(--teal)}
-  #err{display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;
+  .note a{color:var(--link)}
+  #err{display:none;background:var(--tag-r-bg);border:1px solid var(--danger);color:var(--tag-r-ink);
     border-radius:12px;padding:14px;font-size:.85rem;text-align:center}
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">跳到主要內容</a>
 <header>
-  <a class="back" href="index.html" aria-label="返回">‹</a>
+  <a class="back" href="index.html" aria-label="返回首頁">‹</a>
   <div>
-    <h1>📊 全國寵物登記統計</h1>
-    <p id="srcline">資料載入中…</p>
+    <h1><span aria-hidden="true">📊 </span>全國寵物登記統計</h1>
+    <p id="srcline" aria-live="polite">資料載入中…</p>
   </div>
+  <button type="button" class="theme-toggle" data-theme-toggle aria-label="切換佈景主題">
+    <span class="tt-ico" aria-hidden="true">🌗</span>
+  </button>
 </header>
 
-<main>
-  <div id="err">資料載入失敗，請確認連線後重新整理。</div>
+<main id="main" tabindex="-1">
+  <div id="err" role="alert">資料載入失敗，請確認連線後重新整理。</div>
 
   <div class="section-label">全國登記數（<span id="yLabel">—</span>）</div>
   <div class="sum" id="sum"></div>
 
   <div class="section-label">各縣市登記數</div>
-  <div class="toggle" id="toggle">
-    <button data-a="dog" class="on">🐶 犬</button>
-    <button data-a="cat">🐱 貓</button>
+  <div class="toggle" id="toggle" role="group" aria-label="選擇動物別">
+    <button type="button" data-a="dog" class="on" aria-pressed="true">🐶 犬</button>
+    <button type="button" data-a="cat" aria-pressed="false">🐱 貓</button>
   </div>
   <div class="card" style="margin-top:10px">
     <div class="bars" id="bars"></div>
@@ -134,8 +247,11 @@
     document.getElementById('toggle').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return;
       state.animal = b.dataset.a;
-      [...document.querySelectorAll('#toggle button')].forEach((x) =>
-        x.classList.toggle('on', x.dataset.a === state.animal));
+      [...document.querySelectorAll('#toggle button')].forEach((x) => {
+        const on = x.dataset.a === state.animal;
+        x.classList.toggle('on', on);
+        x.setAttribute('aria-pressed', String(on));
+      });
       renderBars();
     });
   }

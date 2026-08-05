@@ -3,27 +3,132 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
 <title>寵物登記查詢</title>
-<meta name="description" content="農業部寵物登記管理資訊網 — 寵物資料與違反動保法紀錄查詢" />
+<meta name="description" content="農業部寵物登記管理資訊網 — 晶片查詢、名下寵物清冊與全國登記統計。可安裝的 PWA，資料只存在本機。" />
+<link rel="canonical" href="https://opopwowo.github.io/pet-query-app/" />
+
+<!-- 主題色（會由 app.js 依深／淺色動態更新） -->
+<meta name="theme-color" content="#0f766e" />
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.webmanifest" />
-<meta name="theme-color" content="#0f766e" />
-<link rel="icon" href="favicon-32.png" sizes="32x32" />
 
-<!-- iOS 加入主畫面 -->
+<!-- Favicon / 圖示 -->
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+<!-- iOS / Android 加入主畫面 -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="寵物查詢" />
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+<!-- Open Graph / 社群分享 -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="寵物登記查詢" />
+<meta property="og:title" content="寵物登記查詢" />
+<meta property="og:description" content="農業部寵物登記管理資訊網 — 晶片查詢、名下寵物清冊與全國登記統計。" />
+<meta property="og:url" content="https://opopwowo.github.io/pet-query-app/" />
+<meta property="og:image" content="https://opopwowo.github.io/pet-query-app/icons/icon-512.png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
+<meta property="og:locale" content="zh_TW" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="寵物登記查詢" />
+<meta name="twitter:description" content="晶片查詢、名下寵物清冊與全國登記統計，可安裝的 PWA。" />
+<meta name="twitter:image" content="https://opopwowo.github.io/pet-query-app/icons/icon-512.png" />
+
+<!-- 佈景主題：先套用避免閃爍（FOUC），並同步瀏覽器 UI 顏色 -->
+<script>
+(function(){try{
+  var p=localStorage.getItem('pet_theme');
+  var sys=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
+  var dark=(p==='dark')||(p!=='light'&&sys);
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  var m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.setAttribute('content',dark?'#0f5b54':'#0f766e');
+}catch(e){}})();
+</script>
+<script src="app.js" defer></script>
 
 <style>
   :root{
-    --teal:#0f766e; --teal-d:#0c5c56; --teal-l:#14b8a6;
-    --bg:#f1f5f4; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    color-scheme:light;
+    --teal:#0f766e; --teal-d:#0c5c56; --teal-l:#14b8a6; --link:#0b6058;
+    --btn:#0f766e; --btn-ink:#ffffff;
+    --bg:#f1f5f4; --card:#ffffff; --card-2:#f7f9f8; --ink:#1f2937; --muted:#5b6673;
     --line:#e5e7eb;
+    --ico-bg:#e6f4f1; --ico-ink:#0c5c56;
+    --soft-bg:#e6f4f1; --soft-line:#b9e2da; --soft-ink:#0b4f49;
+    --warn-bg:#fffbe6; --warn-line:#fde68a; --warn-ink:#7a5304;
+    --hdr-1:#0f766e; --hdr-2:#0c5c56;
+    --shadow:rgba(0,0,0,.06); --shadow-strong:rgba(15,118,110,.25);
+    --focus:#0f766e; --danger:#b91c1c;
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --teal:#14b8a6; --teal-d:#0d9488; --teal-l:#2dd4bf; --link:#5eead4;
+    --btn:#0d5f58; --btn-ink:#ffffff;
+    --bg:#0d1210; --card:#161d1b; --card-2:#1e2724; --ink:#e8edeb; --muted:#a7b4b0;
+    --line:#2b3532;
+    --ico-bg:#123430; --ico-ink:#5eead4;
+    --soft-bg:#0f2e2a; --soft-line:#1c4a44; --soft-ink:#9fe3d9;
+    --warn-bg:#2a2410; --warn-line:#4d4318; --warn-ink:#f5d98b;
+    --hdr-1:#0f5b54; --hdr-2:#0a3f3a;
+    --shadow:rgba(0,0,0,.45); --shadow-strong:rgba(0,0,0,.55);
+    --focus:#5eead4; --danger:#f7a8a8;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+  /* ===== 無障礙：跳過連結、focus 樣式、減少動態 ===== */
+  .sr-only{
+    position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+  .skip-link{
+    position:absolute;left:8px;top:-56px;z-index:200;
+    background:var(--card);color:var(--link);border:2px solid var(--focus);
+    padding:10px 16px;border-radius:10px;font-size:.9rem;font-weight:700;text-decoration:none;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{top:8px}
+  :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+
+  /* 主題切換鈕（位於標頭右上） */
+  .theme-toggle{
+    position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;
+    width:42px;height:42px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);
+    color:#fff;font-size:1.15rem;line-height:1;cursor:pointer;
+    display:grid;place-items:center;z-index:6;
+  }
+  .theme-toggle:hover{background:rgba(255,255,255,.28)}
+  .theme-toggle:active{transform:scale(.92)}
+  .theme-toggle:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+  /* Service Worker 新版本提示 */
+  .sw-update{
+    position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:120;
+    display:flex;align-items:center;gap:10px;max-width:92%;
+    background:var(--card);color:var(--ink);border:1px solid var(--line);
+    box-shadow:0 8px 24px var(--shadow-strong);
+    border-radius:14px;padding:12px 14px;font-size:.86rem;
+  }
+  .sw-update button{
+    border:none;background:var(--btn);color:var(--btn-ink);
+    padding:9px 15px;border-radius:10px;font-size:.84rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .sw-update button.sw-later{background:transparent;color:var(--muted);padding:9px 6px}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms!important;animation-iteration-count:1!important;
+      transition-duration:.001ms!important;scroll-behavior:auto!important;
+    }
+  }
   html,body{margin:0;padding:0}
   body{
     font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
@@ -33,10 +138,11 @@
   }
   /* 頂部漸層標頭 */
   header{
-    background:linear-gradient(135deg,var(--teal),var(--teal-d));
+    position:relative;
+    background:linear-gradient(135deg,var(--hdr-1),var(--hdr-2));
     color:#fff; padding:calc(28px + env(safe-area-inset-top)) 20px 26px;
     text-align:center; border-radius:0 0 26px 26px;
-    box-shadow:0 6px 18px rgba(15,118,110,.25);
+    box-shadow:0 6px 18px var(--shadow-strong);
   }
   .logo{
     width:66px;height:66px;margin:0 auto 12px;display:block;
@@ -52,24 +158,24 @@
     width:100%;border:none;cursor:pointer;text-decoration:none;
     background:var(--card);color:var(--ink);
     padding:18px 18px;border-radius:18px;margin-bottom:14px;
-    box-shadow:0 2px 10px rgba(0,0,0,.05);
+    box-shadow:0 2px 10px var(--shadow);
     border:1px solid var(--line);
     transition:transform .12s ease, box-shadow .12s ease;
     text-align:left;
   }
-  .btn:active{transform:scale(.98);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .btn:active{transform:scale(.98);box-shadow:0 1px 4px var(--shadow)}
   .btn .ico{
     flex:0 0 46px;height:46px;border-radius:14px;
     display:grid;place-items:center;font-size:24px;
-    background:#e6f4f1;color:var(--teal);
+    background:var(--ico-bg);color:var(--ico-ink);
   }
   .btn .tx b{display:block;font-size:1.02rem}
   .btn .tx span{font-size:.78rem;color:var(--muted)}
-  .btn .arrow{margin-left:auto;color:#cbd5e1;font-size:1.3rem}
+  .btn .arrow{margin-left:auto;color:var(--muted);font-size:1.3rem;opacity:.7}
 
   .btn.primary{
-    background:linear-gradient(135deg,var(--teal),var(--teal-d));
-    color:#fff;border:none;box-shadow:0 6px 16px rgba(15,118,110,.3);
+    background:linear-gradient(135deg,var(--hdr-1),var(--hdr-2));
+    color:#fff;border:none;box-shadow:0 6px 16px var(--shadow-strong);
   }
   .btn.primary .ico{background:rgba(255,255,255,.2);color:#fff}
   .btn.primary .tx span{color:rgba(255,255,255,.8)}
@@ -89,7 +195,7 @@
     font-size:.72rem;color:var(--muted);line-height:1.6;
     margin-top:18px;text-align:center;padding:0 8px;
   }
-  .note a{color:var(--teal)}
+  .note a{color:var(--link)}
 
   /* 我的常用晶片號碼 */
   .fav{
@@ -99,14 +205,14 @@
   .fav .add{display:flex;gap:8px;flex-wrap:wrap}
   .fav .add input{
     min-width:0;height:42px;border:1px solid var(--line);box-sizing:border-box;
-    border-radius:11px;padding:0 12px;font-size:.9rem;background:#fafafa;color:var(--ink);
+    border-radius:11px;padding:0 12px;font-size:.9rem;background:var(--card-2);color:var(--ink);
   }
   .fav .add input#favChip{flex:1 1 100%}
   .fav .add input#favName{flex:1 1 auto}
-  .fav .add input:focus{outline:none;border-color:var(--teal);background:#fff}
+  .fav .add input:focus{border-color:var(--focus);background:var(--card)}
   .fav .add button{
     flex:0 0 auto;height:42px;padding:0 18px;border:none;border-radius:11px;white-space:nowrap;
-    background:var(--teal);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;
+    background:var(--btn);color:var(--btn-ink);font-size:.9rem;font-weight:600;cursor:pointer;
   }
   .fav .add button:active{transform:scale(.97)}
   .fav ul{list-style:none;margin:12px 0 0;padding:0}
@@ -118,18 +224,19 @@
     font-size:.8rem;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
     word-break:break-all;
   }
-  .fav li .meta .sub{display:block;font-size:.76rem;color:var(--teal);margin-top:2px}
+  .fav li .meta .sub{display:block;font-size:.76rem;color:var(--link);margin-top:2px}
+  .fav li .meta[role="button"]{cursor:pointer;border-radius:8px}
   .fav li .act{
-    flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:#fff;
-    border-radius:10px;display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--teal);
+    flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);background:var(--card);
+    border-radius:10px;display:grid;place-items:center;font-size:15px;cursor:pointer;color:var(--link);
   }
-  .fav li .act.q{background:var(--teal);color:#fff;border-color:var(--teal)}
-  .fav li .act.del{color:#b91c1c}
+  .fav li .act.q{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+  .fav li .act.del{color:var(--danger)}
   .fav li .act:active{transform:scale(.92)}
   .fav .empty{font-size:.78rem;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.6}
 
   /* 寵物卡片：展開的查詢結果紀錄 */
-  .detail{margin:10px 2px 2px;background:#f8fafa;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .detail{margin:10px 2px 2px;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:12px}
   .detail .view .drow{display:flex;gap:8px;font-size:.82rem;padding:3px 0}
   .detail .view .drow .dk{color:var(--muted);flex:0 0 64px}
   .detail .view .drow .dv{color:var(--ink);flex:1;word-break:break-word}
@@ -139,35 +246,36 @@
   .detail .edit label.full{grid-column:1 / -1}
   .detail .edit input,.detail .edit select{
     height:38px;border:1px solid var(--line);border-radius:9px;padding:0 9px;
-    font-size:.86rem;background:#fff;color:var(--ink);box-sizing:border-box;width:100%;
+    font-size:.86rem;background:var(--card);color:var(--ink);box-sizing:border-box;width:100%;
   }
-  .detail .edit input:focus,.detail .edit select:focus{outline:none;border-color:var(--teal)}
+  .detail .edit input:focus,.detail .edit select:focus{border-color:var(--focus)}
   .detail .ebtns{display:flex;gap:8px;margin-top:10px}
   .detail .ebtns button{
     flex:1;height:40px;border:none;border-radius:10px;font-size:.86rem;font-weight:600;cursor:pointer;
   }
-  .detail .ebtns .save{background:var(--teal);color:#fff}
-  .detail .ebtns .cancel{background:#fff;color:var(--muted);border:1px solid var(--line)}
+  .detail .ebtns .save{background:var(--btn);color:var(--btn-ink)}
+  .detail .ebtns .cancel{background:var(--card);color:var(--muted);border:1px solid var(--line)}
   .detail .editbtn{
-    margin-top:4px;width:100%;height:38px;border:1px dashed var(--teal);background:#fff;
-    color:var(--teal);border-radius:10px;font-size:.84rem;cursor:pointer;
+    margin-top:4px;width:100%;height:38px;border:1px dashed var(--teal);background:var(--card);
+    color:var(--link);border-radius:10px;font-size:.84rem;cursor:pointer;
   }
   /* 匯出／匯入備份 */
   .fav .tools{display:flex;gap:8px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
   .fav .tools button,.fav .tools .impbtn{
-    flex:1;height:40px;border:1px solid var(--line);background:#fff;color:var(--teal);
+    flex:1;height:40px;border:1px solid var(--line);background:var(--card);color:var(--link);
     border-radius:11px;font-size:.84rem;font-weight:600;cursor:pointer;
     display:flex;align-items:center;justify-content:center;gap:4px;
   }
-  .fav .tools button:active,.fav .tools .impbtn:active{transform:scale(.97);background:#f0faf7}
+  .fav .tools button:active,.fav .tools .impbtn:active{transform:scale(.97);background:var(--card-2)}
+  .fav .tools .impbtn:focus-within{outline:3px solid var(--focus);outline-offset:2px}
 
   /* 搜尋 */
   .fav .search{position:relative;margin-top:10px}
   .fav .search input{
     width:100%;height:40px;border:1px solid var(--line);border-radius:11px;
-    padding:0 34px 0 34px;font-size:.88rem;background:#fafafa;color:var(--ink);box-sizing:border-box;
+    padding:0 34px 0 34px;font-size:.88rem;background:var(--card-2);color:var(--ink);box-sizing:border-box;
   }
-  .fav .search input:focus{outline:none;border-color:var(--teal);background:#fff}
+  .fav .search input:focus{border-color:var(--focus);background:var(--card)}
   .fav .search .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem}
   .fav .search .sx{
     position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
@@ -178,15 +286,16 @@
   /* 拖曳把手 */
   .fav li .drag{
     flex:0 0 auto;width:26px;height:34px;display:grid;place-items:center;cursor:grab;
-    color:#cbd5e1;font-size:18px;touch-action:none;user-select:none;
+    color:var(--muted);font-size:18px;touch-action:none;user-select:none;
+    border:none;background:transparent;border-radius:8px;
   }
-  .fav li.dragging{opacity:.65;background:#eef7f4;border-radius:10px}
+  .fav li.dragging{opacity:.65;background:var(--card-2);border-radius:10px}
   .fav li.dragging .drag{cursor:grabbing}
   .fav .nores{font-size:.8rem;color:var(--muted);text-align:center;padding:14px 0}
 
   /* 登入說明卡 */
   .loginnote{
-    background:#e6f4f1;border:1px solid #b9e2da;color:#0c5c56;
+    background:var(--soft-bg);border:1px solid var(--soft-line);color:var(--soft-ink);
     border-radius:14px;padding:12px 14px;font-size:.78rem;line-height:1.65;margin-bottom:14px;
   }
   .loginnote b{font-weight:700}
@@ -194,11 +303,11 @@
   /* 安裝提示 */
   #install{
     display:none;flex-wrap:wrap;align-items:center;gap:8px 10px;
-    background:#fffbe6;border:1px solid #fde68a;color:#92660a;
+    background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-ink);
     border-radius:14px;padding:12px 14px;margin-bottom:16px;font-size:.82rem;
   }
   #install > span{flex:1 1 100%;min-width:0;line-height:1.45}
-  #install button{flex:0 0 auto;margin-left:auto;border:none;background:var(--teal);color:#fff;
+  #install button{flex:0 0 auto;margin-left:auto;border:none;background:var(--btn);color:var(--btn-ink);
     padding:8px 14px;border-radius:10px;font-size:.8rem;cursor:pointer;white-space:nowrap;
   }
   .toast{
@@ -210,36 +319,40 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">跳到主要內容</a>
 <header>
-  <img class="logo" src="icons/icon-192.png" alt="logo" />
+  <button type="button" class="theme-toggle" data-theme-toggle aria-label="切換佈景主題">
+    <span class="tt-ico" aria-hidden="true">🌗</span>
+  </button>
+  <img class="logo" src="icons/icon-192.png" alt="寵物登記查詢 App 圖示" />
   <h1>寵物登記查詢</h1>
   <p>農業部寵物登記管理資訊網</p>
 </header>
 
-<main>
-  <div id="install">
+<main id="main" tabindex="-1">
+  <div id="install" role="region" aria-label="安裝提示">
     <span>📲 將此查詢加入主畫面，像 App 一樣使用</span>
     <button id="installBtn">安裝</button>
   </div>
 
   <a class="btn primary" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
-    <span class="ico">🔍</span>
+    <span class="ico" aria-hidden="true">🔍</span>
     <span class="tx"><b>開始查詢</b><span>晶片查詢免登入</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <div class="section-label">官方登入與會員操作</div>
 
   <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
-    <span class="ico">🔑</span>
+    <span class="ico" aria-hidden="true">🔑</span>
     <span class="tx"><b>登入官方系統</b><span>由你本人輸入驗證碼登入</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
-    <span class="ico">🔁</span>
+    <span class="ico" aria-hidden="true">🔁</span>
     <span class="tx"><b>轉讓・過戶（轉入／轉出）</b><span>登入後於會員專區辦理</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <div class="loginnote">
@@ -251,13 +364,13 @@
   <div class="section-label">我的常用晶片號碼</div>
   <div class="fav">
     <div class="add">
-      <input id="favChip" inputmode="numeric" placeholder="晶片號碼（可含連字號）" />
-      <input id="favName" maxlength="12" placeholder="名稱（選填）" />
+      <input id="favChip" inputmode="numeric" placeholder="晶片號碼（可含連字號）" aria-label="晶片號碼（可含連字號）" />
+      <input id="favName" maxlength="12" placeholder="名稱（選填）" aria-label="寵物名稱（選填）" />
       <button id="favAdd" type="button">＋ 加入</button>
     </div>
     <div class="search" id="favSearchWrap">
-      <span class="si">🔍</span>
-      <input id="favSearch" type="search" placeholder="搜尋名稱或晶片號碼" />
+      <span class="si" aria-hidden="true">🔍</span>
+      <input id="favSearch" type="search" placeholder="搜尋名稱或晶片號碼" aria-label="搜尋已儲存的名稱或晶片號碼" />
       <button class="sx" id="favSearchClear" type="button" aria-label="清除">✕</button>
     </div>
     <ul id="favList"></ul>
@@ -273,35 +386,35 @@
   <div class="section-label">查詢方式</div>
 
   <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
-    <span class="ico">🏷️</span>
+    <span class="ico" aria-hidden="true">🏷️</span>
     <span class="tx"><b>依晶片號碼查詢</b><span>輸入寵物晶片號碼</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <a class="btn" href="https://www.pet.gov.tw/Web/O201_Fido.aspx?s=999" target="_blank" rel="noopener">
-    <span class="ico">👤</span>
+    <span class="ico" aria-hidden="true">👤</span>
     <span class="tx"><b>依飼主資料查詢</b><span>飼主生日 + 證號</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <a class="btn" href="https://www.pet.gov.tw/" target="_blank" rel="noopener">
-    <span class="ico">🏠</span>
+    <span class="ico" aria-hidden="true">🏠</span>
     <span class="tx"><b>寵物登記管理資訊網</b><span>官方網站首頁</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <div class="section-label">我的清冊與統計</div>
 
   <a class="btn" href="registry.html">
-    <span class="ico">📋</span>
+    <span class="ico" aria-hidden="true">📋</span>
     <span class="tx"><b>我的名下寵物清冊</b><span>匯入官方 Excel・在此檢視</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <a class="btn" href="stats.html">
-    <span class="ico">📊</span>
+    <span class="ico" aria-hidden="true">📊</span>
     <span class="tx"><b>全國登記統計</b><span>各縣市・年度趨勢・絕育率</span></span>
-    <span class="arrow">›</span>
+    <span class="arrow" aria-hidden="true">›</span>
   </a>
 
   <div class="section-label">查得到的資料</div>
@@ -321,15 +434,10 @@
   </p>
 </main>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-  // 註冊 service worker（讓 App 可安裝）
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () =>
-      navigator.serviceWorker.register('sw.js').catch(() => {})
-    );
-  }
+  // Service worker 註冊與「即時更新」提示已移至共用的 app.js
 
   const toast = (msg) => {
     const t = document.getElementById('toast');
@@ -537,18 +645,20 @@
       const row1 = document.createElement('div');
       row1.className = 'row1';
 
-      // 拖曳把手（搜尋中不顯示，避免排序混淆）
+      // 拖曳把手（搜尋中不顯示，避免排序混淆）；純指標操作，對輔助科技隱藏
       if (!q) {
         const handle = document.createElement('div');
         handle.className = 'drag'; handle.title = '拖曳排序'; handle.textContent = '⠿';
+        handle.setAttribute('aria-hidden', 'true');
         handle.addEventListener('pointerdown', (e) => startDrag(e, li));
         row1.appendChild(handle);
       }
 
+      const label = it.name || '未命名';
       const meta = document.createElement('div');
       meta.className = 'meta';
       const b = document.createElement('b');
-      b.textContent = it.name || '未命名';
+      b.textContent = label;
       const num = document.createElement('span');
       num.className = 'num'; num.textContent = it.chip;
       meta.append(b, num);
@@ -560,14 +670,18 @@
       }
 
       const copyBtn = document.createElement('button');
-      copyBtn.className = 'act'; copyBtn.title = '複製'; copyBtn.textContent = '⧉';
+      copyBtn.className = 'act'; copyBtn.type = 'button';
+      copyBtn.title = '複製'; copyBtn.textContent = '⧉';
+      copyBtn.setAttribute('aria-label', '複製「' + label + '」的晶片號碼');
       copyBtn.onclick = async () => {
         const ok = await copyText(it.chip);
         toast(ok ? '已複製晶片號碼' : '複製失敗，請手動複製');
       };
 
       const qBtn = document.createElement('button');
-      qBtn.className = 'act q'; qBtn.title = '查詢'; qBtn.textContent = '🔍';
+      qBtn.className = 'act q'; qBtn.type = 'button';
+      qBtn.title = '查詢'; qBtn.textContent = '🔍';
+      qBtn.setAttribute('aria-label', '複製並到官網查詢「' + label + '」');
       qBtn.onclick = async () => {
         const ok = await copyText(it.chip);
         toast(ok ? '已複製晶片號碼 ⮕ 到官網「長按貼上」並填驗證碼' : '請手動複製晶片號碼');
@@ -575,7 +689,9 @@
       };
 
       const delBtn = document.createElement('button');
-      delBtn.className = 'act del'; delBtn.title = '刪除'; delBtn.textContent = '✕';
+      delBtn.className = 'act del'; delBtn.type = 'button';
+      delBtn.title = '刪除'; delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label', '刪除「' + label + '」');
       delBtn.onclick = () => {
         if (!confirm('刪除「' + (it.name || it.chip) + '」？')) return;
         save(load().filter((x) => x.id !== it.id)); render();
@@ -583,7 +699,21 @@
 
       row1.append(meta, copyBtn, qBtn, delBtn);
       const detail = buildDetail(it);
-      meta.onclick = () => { detail.hidden = !detail.hidden; };
+      detail.id = 'detail-' + it.id;
+      // 展開／收合查詢紀錄：可用鍵盤操作
+      meta.setAttribute('role', 'button');
+      meta.tabIndex = 0;
+      meta.setAttribute('aria-expanded', 'false');
+      meta.setAttribute('aria-controls', detail.id);
+      meta.setAttribute('aria-label', label + '：展開查詢紀錄');
+      const toggleDetail = () => {
+        detail.hidden = !detail.hidden;
+        meta.setAttribute('aria-expanded', String(!detail.hidden));
+      };
+      meta.addEventListener('click', toggleDetail);
+      meta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDetail(); }
+      });
       li.append(row1, detail);
       $list.appendChild(li);
     });
