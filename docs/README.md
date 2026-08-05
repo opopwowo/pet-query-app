@@ -6,20 +6,29 @@
 
 ## 閱讀順序
 
+**先讀凍結報告** → [ARCHITECTURE_FREEZE.md](./ARCHITECTURE_FREEZE.md)（Checklist、Cloudflare 重估、0–100 評分、Accepted/Pending/Rejected）。
+
 | # | 文件 | 內容 |
 | --- | --- | --- |
-| 1 | [MISSION.md](./MISSION.md) | 使命：我們為什麼做這件事 |
-| 2 | [VISION.md](./VISION.md) | 願景、定位、目標客群、商業模式、競爭優勢 |
-| 3 | [REVIEW_REPORT.md](./REVIEW_REPORT.md) | **Enterprise Architecture Review**：現況評分、技術債、Top 100 改善清單 |
-| 4 | [TECH_STACK.md](./TECH_STACK.md) | 技術選型與理由（Cloudflare + Postgres + React + AI） |
-| 5 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 系統架構、Clean Architecture / DDD、Bounded Contexts、多租戶模型 |
-| 6 | [DATABASE.md](./DATABASE.md) | 資料模型、Schema、索引與分區、規模驗證（1M 寵物 / 10M 紀錄） |
-| 7 | [API.md](./API.md) | REST API 設計、版本、分頁、驗證、Rate Limit、OpenAPI、Webhook |
-| 8 | [SECURITY.md](./SECURITY.md) | 認證/授權、RBAC、Audit、加密、PDPA 個資、OWASP 風險 |
-| 9 | [AI.md](./AI.md) | AI Center：不只是聊天，如何真正節省工作 |
-| 10 | [OFFICIAL_SYNC.md](./OFFICIAL_SYNC.md) | Official Sync Center：合法、安全、最佳體驗的官方同步 |
-| 11 | [ROADMAP.md](./ROADMAP.md) | Phase 0 → v1.0 分階段路線圖 |
-| 12 | [DECISIONS.md](./DECISIONS.md) | Architecture Decision Records（ADR） |
+| 0 | [ARCHITECTURE_FREEZE.md](./ARCHITECTURE_FREEZE.md) | **架構凍結報告**（Phase 0 的入口） |
+| 1 | [WHY.md](./WHY.md) | 第一性原理：為什麼做、為什麼是平台 |
+| 2 | [MISSION.md](./MISSION.md) | 使命 |
+| 3 | [VISION.md](./VISION.md) | 願景、定位、客群、商業模式、競爭優勢 |
+| 4 | [REVIEW_REPORT.md](./REVIEW_REPORT.md) | Enterprise Review：評分、技術債、Top 100 |
+| 5 | [TECH_STACK.md](./TECH_STACK.md) | 技術選型（Cloudflare + Postgres + React + AI） |
+| 6 | [ARCHITECTURE.md](./ARCHITECTURE.md) | 系統架構、Clean Architecture / DDD、多租戶 |
+| 7 | [DOMAIN_MODEL.md](./DOMAIN_MODEL.md) | 領域模型：聚合/實體/值物件/事件/不變式 |
+| 8 | [DATABASE.md](./DATABASE.md) | 資料模型、索引、分區、規模驗證 |
+| 9 | [API.md](./API.md) | REST API 設計 |
+| 10 | [SECURITY.md](./SECURITY.md) | 認證/授權/RBAC/Audit/加密/PDPA |
+| 11 | [OFFICIAL_CONNECTOR.md](./OFFICIAL_CONNECTOR.md) | 政府/外部連接器框架（含 pet.gov.tw） |
+| 12 | [OFFICIAL_SYNC.md](./OFFICIAL_SYNC.md) | pet.gov.tw connector 實例（同步中心） |
+| 13 | [AI.md](./AI.md) | AI Center + AI Worker 架構 |
+| 14 | [PLUGIN_SYSTEM.md](./PLUGIN_SYSTEM.md) | 插件架構（第一天內建） |
+| 15 | [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) | 設計系統（Radix + Tailwind + tokens） |
+| 16 | [ROADMAP.md](./ROADMAP.md) | Architecture Freeze → Phase 0 → v1.0 |
+| 17 | [ADR.md](./ADR.md) | 決策總帳（凍結狀態：Accepted/Pending/Rejected） |
+| 18 | [DECISIONS.md](./DECISIONS.md) | ADR 詳細論述 |
 
 ## 核心原則（所有文件共用）
 

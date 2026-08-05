@@ -75,11 +75,21 @@ Subscription 綁在 Organization 層。
 - **噪音鄰居**：大租戶可升級為 **獨立 schema / 獨立 Neon 專案**（Repository 抽象讓遷移不動應用碼，見 ADR-0003）。
 - **Store-level scoping**：資料可同時屬於 org，並選擇性 scoped 到 store；RBAC 決定跨店可見性。
 
-## 5. Plugin / 模組化
+## 5. Plugin / 模組化（第一天內建）
 
-- 每個 Context 以 **Module Registry** 註冊：路由、權限、事件訂閱、Cron、Nav 項目。
-- **Feature Flags（KV）** 控制模組對租戶/方案的開關 → 特殊需求走設定/模組，不寫死。
-- 對外延伸走 **Webhook + API Key + OAuth app**（後期 Marketplace）。
+- 每個 Context 以 **Module Registry** 註冊：路由、權限、事件訂閱、Cron、Nav、擴充點。
+- **內外部共用同一套擴充點契約**（dogfooding）：核心模組與第三方 plugin 走相同介面。
+- **Feature Flags（KV）** 控制模組對租戶/方案的開關 → 特殊需求走設定/模組，**不寫死單店**。
+- Plugin 不直接碰 DB，只透過 Platform SDK/內部 API（帶 tenant + capability + 稽核）。
+- 對外延伸走 **Webhook + API Key + OAuth app**（第三方沙箱/Marketplace 為後期，但契約現在凍結）。
+- 詳見 [PLUGIN_SYSTEM.md](./PLUGIN_SYSTEM.md)。
+
+## 5b. Connector Framework（政府/外部整合）
+
+- 官方（pet.gov.tw）、其他政府平台、協會、第三方服務皆為 **Connector**，以 **Capability Flags** 描述能力，**反腐層**隔離外部格式（見 DOMAIN_MODEL §7）。
+- 新增 connector = 實作介面 + manifest，以 plugin 形式安裝，**不改核心**。
+- 是否自動化取決於來源是否提供**合法 API/授權**；pet.gov.tw 一律「協助/引導、使用者本人送出」。
+- 詳見 [OFFICIAL_CONNECTOR.md](./OFFICIAL_CONNECTOR.md)。
 
 ## 6. 請求生命週期（範例：新增疫苗紀錄）
 

@@ -221,3 +221,26 @@ create policy tenant_isolation on pets
 - Neon PITR（Point-in-Time Recovery）+ 每日邏輯備份到 R2。
 - 租戶級匯出（GDPR/PDPA「可攜」）：背景任務打包該租戶資料到 R2 簽章連結。
 - 刪除採 Soft Delete；硬刪除走保留期後的排程清理（Cron）+ 稽核。
+
+## 7. 附錄：平台/SaaS 相關表（草圖）
+
+> 皆帶 `tenant_id` + RLS + soft delete（除註明 append-only 者）。
+
+```sql
+subscriptions(id, tenant_id, plan, seats, status, current_period_end, stripe_customer_id, stripe_sub_id)
+invoices(id, tenant_id, amount numeric, currency, status, issued_at, paid_at, stripe_invoice_id)
+usage_counters(id, tenant_id, metric, period, count)            -- AI/通知/儲存 計量
+notifications(id, tenant_id, user_id, channel, template, payload jsonb, status, sent_at)
+notification_prefs(id, tenant_id, user_id, channel, event_type, enabled)
+connector_accounts(id, tenant_id, connector_id, auth_token_enc bytea, scopes, status)  -- 僅 token，永不存官方密碼
+sync_sessions(id, tenant_id, connector_id, window_expires_at, batch jsonb, state)
+plugin_installations(id, tenant_id, plugin_id, version, enabled, settings jsonb, granted_scopes text[])
+custom_field_values(id, tenant_id, entity_type, entity_id, plugin_id, values jsonb)     -- 受控自訂欄位
+webhooks(id, tenant_id, url, events text[], secret_enc bytea, status)
+webhook_deliveries(id, tenant_id, webhook_id, event, status, attempts, last_at)         -- 投遞紀錄
+api_keys(id, tenant_id, name, hash, scopes text[], last_used_at, revoked_at)            -- 只存雜湊
+feature_flags(id, tenant_id, key, value jsonb)                                          -- 亦可存 KV
+ai_tasks(id, tenant_id, type, input jsonb, status, result jsonb, result_r2_key, cost, created_by)
+vectors(id, tenant_id, entity_type, entity_id, embedding vector(1536))                  -- pgvector，RAG（租戶隔離）
+```
+

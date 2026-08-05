@@ -3,14 +3,22 @@
 > 原則：每階段都端到端可用、可展示、可收費驗證。**先地基，再垂直切片，再廣度。**
 > 狀態：**Proposed**。時程為相對估算（依團隊配置調整），非承諾日期。
 
+## Gate 0 — Architecture Freeze（架構凍結）〔進行中〕
+**Phase 0 的唯一入口。** 未通過凍結不得開始任何 Coding。
+- 完成 `docs/` 全套設計文件（✅ 已完成草案）。
+- 解決 6 項 Pending 決策（見 [ARCHITECTURE_FREEZE.md](./ARCHITECTURE_FREEZE.md) §D）：資料落地、認證、發票金流、品牌、AI 同意。
+- 產品負責人 **Sign-off**，ADR Pending → Accepted。
+- **出場標準**：Freeze Report 批准。
+
 ## Phase 0 — Foundation（地基）〔約 4–6 週〕
-**目標：能安全承載多租戶的空平台。**
+**目標：能安全承載多租戶、且可插拔的空平台。**
 - Monorepo（pnpm + Turborepo）、TS 設定、CI/CD、環境（dev/staging/prod）。
-- Cloudflare 基礎（Workers/Pages/R2/KV/Queues/Hyperdrive）+ Neon + Terraform。
-- 認證（Clerk）+ 組織/門市/成員 + **RBAC** + **RLS** 骨架 + **Audit Log**。
+- Cloudflare 基礎（Workers/Pages/R2/KV/Queues/Hyperdrive）+ Neon（含 pgvector）+ Terraform。
+- 認證 + 組織/門市/成員 + **RBAC** + **RLS** 骨架 + **Audit Log**。
+- **Module Registry + 擴充點契約 + Connector 介面**（Plugin/Connector 地基，先 first-party）。
 - Design System v0（tokens + 核心元件；沿用既有深色/無障礙基礎）。
 - 觀測（Sentry + Logpush）、錯誤/日誌規範。
-- **出場標準**：可註冊組織、邀請員工、指派角色，資料受 RLS 隔離，動作進稽核。
+- **出場標準**：可註冊組織、邀請員工、指派角色，資料受 RLS 隔離，動作進稽核；一個 first-party 模組透過擴充點掛載成功。
 
 ## Phase 1 — Core Records（核心紀錄）〔約 6–8 週〕
 **目標：取代 Excel 的第一步 —— 寵物與健康。**

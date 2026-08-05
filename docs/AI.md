@@ -39,6 +39,27 @@ Client → API（/v1/ai/tasks, 202）→ Queue → AI Worker
 - **工具即 API**：AI 的工具就是內部 use case，複用同一套權限/稽核 → AI 動作也進 `audit_logs`。
 - **串流**：對話式輔助用 streaming 提升體感；批次任務走佇列。
 
+## 3b. AI Worker Architecture
+
+> AI 任務一律**非同步、Queue 驅動、獨立 Worker** 處理（ADR-0015）。前端只送任務、收結果。
+
+```
+API Worker ──enqueue──▶ Queue(ai-tasks) ──▶ AI Worker（獨立）
+                                              ├─ 1. 取任務 + 租戶 context（RLS）
+                                              ├─ 2. Retrieve：pgvector 檢索（租戶隔離）
+                                              ├─ 3. Plan：組 prompt（system+policy+tools）
+                                              ├─ 4. Act：Tool Registry 迴圈（tool-use）
+                                              │      每個 tool = 內部 use case（帶權限/稽核）
+                                              ├─ 5. Persist：ai_tasks.result + R2 產物
+                                              └─ 6. Emit：AiTaskSucceeded → 通知/webhook
+```
+
+- **Tool Registry**：AI 可呼叫的工具即內部 use case（`query_pets`、`create_reminder`、`generate_pdf`、`reconcile_official`…），複用同一套 RBAC/稽核。Plugin 可透過 `aiTools` 擴充點註冊新工具（見 PLUGIN_SYSTEM）。
+- **Agentic Workflows**：多步驟任務（如「準備一窩的官方登記包」）由 planner 拆解 → 依序呼叫工具 → 產出**待人工確認**的成果，不自動送出。
+- **模型分級**：簡單抽取用小模型、複雜推理用高階 Claude；經 AI Gateway 快取與限流控成本。
+- **冪等與重試**：Queue 消費者需冪等（以 task id 去重）；失敗指數退避，超限標 `failed`。
+- **可觀測**：每次呼叫記 token/成本/延遲/工具軌跡，供稽核與 eval。
+
 ## 4. 安全與治理
 
 - **PII 最小化**：送模型前遮罩不必要的敏感欄位；身分證等預設不入 prompt。

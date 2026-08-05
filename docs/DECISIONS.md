@@ -1,7 +1,8 @@
-# DECISIONS — Architecture Decision Records（ADR）
+# DECISIONS — Architecture Decision Records（ADR，詳細論述）
 
-> 格式：每則 ADR 記錄 **背景 / 決定 / 理由 / 取捨 / 狀態**。
-> 全部狀態目前為 **Proposed**，待批准後轉 **Accepted**。
+> 本檔為每則決策的**詳細論述**（背景 / 決定 / 理由 / 取捨）。
+> **凍結狀態與重審結論（Accepted / Pending / Rejected）以 [ADR.md](./ADR.md) 為準**（含新決策 0013–0020）。
+> Architecture Freeze 總覽見 [ARCHITECTURE_FREEZE.md](./ARCHITECTURE_FREEZE.md)。
 
 ---
 
